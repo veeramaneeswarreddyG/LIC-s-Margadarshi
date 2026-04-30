@@ -1,0 +1,312 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============= USERS =============
+model User {
+  id                  String    @id @default(cuid())
+  uid                 String    @unique // Firebase UID
+  email               String    @unique
+  phoneNumber         String    @unique
+  name                String
+  dateOfBirth         DateTime?
+  gender              String?
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  pan                 String?
+  status              String    @default("active") // active, inactive, suspended
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastLogin           DateTime?
+
+  // Relations
+  policies            Policy[]
+  transactions        Transaction[]
+  goals               Goal[]
+  documents           Document[]
+  notifications       Notification[]
+  aiConversations     AIConversation[]
+  aiContextState      AIContextState?
+}
+
+// ============= LIC PLANS (MASTER DATA) =============
+model LICPlan {
+  id                  String    @id @default(cuid())
+  planName            String
+  planCode            String    @unique
+  planType            String    // Term, Endowment, Pension, UnitLinked, MoneyBack
+  description         String?
+  minAge              Int       // Minimum age for policy
+  maxAge              Int       // Maximum age for policy
+  minTerm             Int       // Minimum policy term in years
+  maxTerm             Int       // Maximum policy term in years
+  minSA               Float     // Minimum Sum Assured in ₹
+  maxSA               Float     // Maximum Sum Assured in ₹
+  features            Json      // Features as JSON: { "bonuses": true, "riders": [...], "flexibility": "high" }
+  riderOptions        Json      // Available riders: { "accidental", "critical_illness", "waiver" }
+  premiumTable        Json      // Premium calculation table: { "gender": { "male": [...], "female": [...] } }
+  benefitStructure    Json      // Maturity benefit structure
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  policies            Policy[]
+  calculationLogs     CalculationLog[]
+  recommendations     AIRecommendation[]
+
+  @@index([planType])
+  @@index([status])
+}
+
+// ============= POLICIES =============
+model Policy {
+  id                  String    @id @default(cuid())
+  policyNumber        String    @unique
+  userId              String
+  planId              String
+  sumAssured          Float
+  policyTerm          Int       // in years
+  premiumFrequency    String    // annual, semi-annual, quarterly, monthly
+  annualPremium       Float
+  monthlyPremium      Float?
+  startDate           DateTime
+  maturityDate        DateTime
+  status              String    @default("active") // active, lapsed, matured, surrendered, cancelled
+  surrenderValue      Float?
+  maturityAmount      Float?
+  selectedRiders      Json?     // Selected riders and their costs
+  policyDocumentUrl   String?
+  nomineeDetails      Json      // { "name": "", "relation": "", "percentage": 0 }
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                LICPlan   @relation(fields: [planId], references: [id])
+  transactions        Transaction[]
+  calculationLogs     CalculationLog[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+// ============= TRANSACTIONS =============
+model Transaction {
+  id                  String    @id @default(cuid())
+  userId              String
+  policyId            String?
+  type                String    // "premium_payment", "claim", "maturity", "refund", "surrender"
+  amount              Float
+  paymentMethod       String    // "online", "cheque", "cash", "auto-debit"
+  status              String    @default("pending") // pending, completed, failed
+  referenceNumber     String?   @unique
+  description         String?
+  transactionDate     DateTime  @default(now())
+  completedDate       DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policy              Policy?   @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+// ============= FINANCIAL GOALS =============
+model Goal {
+  id                  String    @id @default(cuid())
+  userId              String
+  goalName            String
+  goalType            String    // "retirement", "children_education", "child_marriage", "wealth_creation"
+  targetAmount        Float
+  targetDate          DateTime
+  currentSavings      Float?
+  suggestedPlans      Json?     // Recommended plans as JSON array
+  status              String    @default("active") // active, achieved, abandoned
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([goalType])
+}
+
+// ============= CALCULATION LOGS (AUDIT TRAIL) =============
+model CalculationLog {
+  id                  String    @id @default(cuid())
+  userId              String
+  planId              String
+  policyId            String?
+  calculationType     String    // "premium", "maturity", "surrender", "comparison"
+  inputData           Json      // Input parameters used
+  outputData          Json      // Calculated results
+  formula             String?   // Formula used for calculation
+  status              String    @default("success") // success, error, validation_failed
+  errorMessage        String?
+  precision           String    @default("exact") // exact, approximation
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  plan                LICPlan   @relation(fields: [planId], references: [id])
+  policy              Policy?   @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([calculationType])
+  @@index([status])
+}
+
+// ============= DOCUMENTS =============
+model Document {
+  id                  String    @id @default(cuid())
+  userId              String
+  documentType        String    // "policy_document", "calculation_report", "nominee_form", "claim_form"
+  fileName            String
+  fileUrl             String
+  uploadedAt          DateTime  @default(now())
+  expiryDate          DateTime?
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([documentType])
+}
+
+// ============= NOTIFICATIONS =============
+model Notification {
+  id                  String    @id @default(cuid())
+  userId              String
+  type                String    // "policy_update", "premium_reminder", "goal_update", "recommendation"
+  title               String
+  message             String
+  actionUrl           String?
+  isRead              Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  readAt              DateTime?
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ============= AI CONVERSATIONS =============
+model AIConversation {
+  id                  String    @id @default(cuid())
+  userId              String
+  conversationTopic   String    // "plan_inquiry", "calculation_help", "goal_planning", "claims"
+  messages            Json      // Array of { role: "user" | "assistant", content: string, timestamp: DateTime }
+  status              String    @default("active") // active, archived, resolved
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  archivedAt          DateTime?
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contextState        AIContextState?
+  actionLogs          AIActionLog[]
+  recommendations     AIRecommendation[]
+
+  @@index([userId])
+  @@index([conversationTopic])
+}
+
+// ============= AI CONTEXT STATE (MEMORY) =============
+model AIContextState {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  conversationId      String    @unique
+  currentContext      Json      // Current conversation context: { "lastAction": "", "userProfile": {}, "goals": [] }
+  agentState          String    @default("idle") // idle, listening, processing, responding
+  memoryBuffer        Json?     // Recent messages for context
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation        AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+// ============= AI ACTION LOGS =============
+model AIActionLog {
+  id                  String    @id @default(cuid())
+  conversationId      String
+  actionType          String    // "fetch_plan", "calculate_premium", "fetch_policy", "suggest_plan"
+  actionStatus        String    // "initiated", "in_progress", "completed", "failed"
+  inputParameters     Json
+  outputResult        Json?
+  errorMessage        String?
+  executionTime       Int?      // in milliseconds
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  conversation        AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+// ============= AI RECOMMENDATIONS =============
+model AIRecommendation {
+  id                  String    @id @default(cuid())
+  userId              String?
+  conversationId      String?
+  planId              String?
+  recommendationType  String    // "plan_match", "goal_alignment", "cost_optimization"
+  recommendedPlans    Json      // Array of recommended plan IDs and reasons
+  reasoningLogic      String    // Explanation of why these plans are recommended
+  confidenceScore     Float?    // 0-1 confidence in recommendation
+  appliedAt           DateTime?
+  status              String    @default("pending") // pending, applied, rejected, expired
+  expiryDate          DateTime?
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  plan                LICPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
+  conversation        AIConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============= AGENTS (MULTI-AGENT SYSTEM) =============
+model Agent {
+  id                  String    @id @default(cuid())
+  agentName           String
+  agentType           String    // "planner", "calculator", "advisor", "claims_handler"
+  description         String?
+  capabilities        Json      // List of capabilities and tools
+  status              String    @default("active")
+  lastActive          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// ============= CLIENTS (PARTNER/BROKER MANAGEMENT) =============
+model Client {
+  id                  String    @id @default(cuid())
+  clientName          String
+  clientType          String    // "broker", "agent", "partner", "corporate"
+  email               String    @unique
+  phoneNumber         String?
+  apiKey              String    @unique
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}

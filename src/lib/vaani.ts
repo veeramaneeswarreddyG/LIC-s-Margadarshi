@@ -1,407 +1,259 @@
-import { PrismaClient } from '@prisma/client';
-import { Redis } from 'ioredis';
-import axios from 'axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const prisma = new PrismaClient();
-const redis =
-  process.env.REDIS_URL
-    ? new Redis(process.env.REDIS_URL, {
-        lazyConnect: true,
-        enableOfflineQueue: false,
-        maxRetriesPerRequest: 0,
-        retryStrategy: () => null,
-      })
-    : null;
+// ============= LIC'S VAANI - GEMINI AI CORE =============
 
-redis?.on('error', () => {});
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+// gemini-2.5-flash is confirmed working; fallbacks in order
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4-turbo';
-
-// ============= LIC'S VAANI - AI ASSISTANT CORE =============
-
-interface VaaniMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
+let genAI: GoogleGenerativeAI | null = null;
+if (GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 }
 
-interface VaaniContext {
+// In-memory conversation store (per server process)
+const conversationStore = new Map<string, VaaniMessage[]>();
+
+export interface VaaniMessage {
+  role: 'user' | 'model';
+  content: string;
+  timestamp: string;
+}
+
+export interface VaaniContext {
   userId: string;
   conversationId: string;
   userProfile?: {
     name: string;
-    age: number;
-    gender: string;
-    policies?: number;
+    uid: string;
   };
-  goals?: any[];
-  recentPolicies?: any[];
-  lastAction?: string;
 }
 
-interface VaaniResponse {
-  type: 'text' | 'chart' | 'action' | 'plan' | 'error';
+export interface VaaniResponse {
+  type: 'text' | 'action' | 'plan' | 'error';
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   action?: {
     type: string;
-    params: any;
+    params: Record<string, unknown>;
   };
-  confidence?: number;
 }
 
-/**
- * 🤖 LIC's Vaani - Initialize conversation with user context
- */
-export async function initializeVaani(
-  userId: string
-): Promise<VaaniContext> {
-  console.log('🌟 Initializing LIC\'s Vaani for user:', userId);
+// ── System prompt ──────────────────────────────────────────────────────────
+function buildSystemPrompt(userData: { name?: string; progress?: any; policiesCount?: number }): string {
+  return `You are LIC's Vaani, a friendly and highly knowledgeable financial assistant for the LIC Margadarshi app — an insurance management platform for LIC (Life Insurance Corporation of India).
 
+You MUST answer EVERY question the user asks. Never refuse to answer.
+
+Your Personality:
+- Warm, professional, and extremely knowledgeable about LIC insurance
+- Use simple language anyone can understand
+- Mix in occasional Hindi phrases like "Namaste", "bilkul", "aap ki seva mein", "zaroor"
+- Use relevant emojis to make responses friendly (but not excessive)
+
+User's Profile & Progress Context:
+- Name: ${userData?.name || 'Valued Customer'}
+- Profile Completed: ${userData?.progress?.profile_completed ? 'Yes' : 'No'}
+- Total Policies Added: ${userData?.policiesCount || 0}
+- Premium Calculations Done: ${userData?.progress?.calculations_done || 0}
+- Completion %: ${userData?.progress?.completion_percentage || 0}%
+
+Based on this progress, if the user asks for guidance or next steps:
+- If Completion % is low and no policies exist, enthusiastically suggest they add their first policy.
+- If they haven't done any calculations, suggest they try the premium calculator to explore plans.
+- If they have policies but haven't completed their profile, suggest they do so for better recommendations.
+
+Your Deep Knowledge Includes:
+
+LIC Plans:
+- Jeevan Anand (Plan 815/915): Endowment + whole life. Premium paying term + lifetime cover. Bonus + FAB.
+- Jeevan Umang (Plan 945): Whole life + 8% survival benefit every year after premium term. Great for regular income.
+- Jeevan Labh (Plan 936): Limited premium endowment. Pay for 10/15/16 yrs, get cover for 16/21/25 yrs.
+- New Jeevan Anand (Plan 815): Participating endowment. Double accident benefit available.
+- Tech Term (Plan 854): Pure online term plan. Very low premium, high cover up to 2 crore.
+- Jeevan Amar (Plan 855): Offline pure term plan. Can choose increasing/level sum assured.
+- SIIP (Plan 852): Unit-linked ULIP. Market-linked returns, 4 fund options.
+- Jeevan Akshay VII (Plan 857): Immediate annuity. Lump sum → monthly/quarterly/annual pension for life.
+- New Jeevan Shanti (Plan 858): Deferred annuity. Save now, pension later.
+- Jeevan Pragati (Plan 838): Sum assured increases every 5 years. Good for young earners.
+- Money Back Plans: 20/25 yr money back. Get 20% sum assured every 5 years.
+- Children Plans: Jeevan Tarun (Plan 834), New Children Money Back (Plan 832).
+- Micro Plans: New Jeevan Mangal, Bhagya Lakshmi for rural/low-income.
+- Pension Plans: Pradhan Mantri Vaya Vandana Yojana (PMVVY) for senior citizens.
+
+Premium Calculation (Approximate):
+- Term plans: ₹500-2000/month for ₹1 Cr cover (age 25-35)
+- Endowment: ₹3000-8000/month for ₹10-25 L sum assured
+- ULIP: Min ₹2000/month, market-linked returns
+
+Claims Process:
+- Death claim: Submit death certificate + policy bond + claim form to nearest LIC branch
+- Maturity claim: LIC sends cheque automatically 2 months before maturity
+- Survival benefit: Credited automatically to bank account on due date
+
+Policy Management:
+- Premium can be paid online at licindia.in, YONO SBI, Paytm, GPay
+- Grace period: 30 days for yearly/half-yearly/quarterly, 15 days for monthly
+- Revival: Policy can be revived within 5 years of lapse by paying due premiums + interest
+- Loan: Available after 3 years. Up to 90% of surrender value.
+- Surrender: Can surrender after 3 years. Gets surrender value.
+
+KYC & Documents:
+- Aadhaar, PAN, passport or driving license for ID proof
+- Bank passbook, cancelled cheque for NEFT payment
+- Medical exam may be required for high sum assured
+
+Tax Benefits:
+- Premium paid: Deduction under Section 80C up to ₹1.5 lakh/year
+- Maturity/death benefit: Tax-free under Section 10(10D) (conditions apply)
+
+App Features (LIC Margadarshi):
+- Dashboard: View all policies, KPI cards, recent activity
+- My Policies: Detailed policy view with premium due dates
+- Explore Plans: Browse all LIC plan categories
+- LIC News: Latest announcements from LIC
+- Profile: Manage account settings
+
+CRITICAL RULES:
+1. ALWAYS answer. Never say "I can't answer that."
+2. For calculations, give clear approximate ranges with explanation
+3. For non-LIC questions, you may briefly answer then redirect back to insurance
+4. Always end with an offer to help more
+5. Keep answers clear and structured — use bullet points for lists
+6. Never make up specific policy numbers that don't exist above`;
+}
+
+// ── Retry helper (handles 429 rate limits) ───────────────────────────────
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 1500): Promise<T> {
   try {
-    // Fetch user profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        policies: {
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        },
-        goals: {
-          where: { status: 'active' },
-        },
-      },
-    });
-
-    if (!user) {
-      throw new Error('User not found');
+    return await fn();
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isRateLimit = msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED');
+    if (retries > 0 && isRateLimit) {
+      await new Promise(r => setTimeout(r, delayMs));
+      return withRetry(fn, retries - 1, delayMs * 2);
     }
-
-    // Create or retrieve conversation
-    const conversation = await prisma.aIConversation.create({
-      data: {
-        userId,
-        conversationTopic: 'general',
-        messages: JSON.stringify([]),
-        status: 'active',
-      },
-    });
-
-    const context: VaaniContext = {
-      userId,
-      conversationId: conversation.id,
-      userProfile: {
-        name: user.name,
-        age: new Date().getFullYear() - (user.dateOfBirth?.getFullYear() || 0),
-        gender: user.gender || 'not-specified',
-        policies: user.policies.length,
-      },
-      goals: user.goals,
-      recentPolicies: user.policies,
-    };
-
-    // Store context in Redis for fast access
-    await redis?.setex(
-      `vaani:context:${userId}`,
-      3600, // 1 hour
-      JSON.stringify(context)
-    );
-
-    return context;
-  } catch (error) {
-    console.error('❌ Vaani initialization error:', error);
-    throw error;
+    throw err;
   }
 }
 
-/**
- * 🧠 Process user query and generate Vaani response
- * CRITICAL: Vaani does NOT calculate - it delegates to backend APIs
- */
+// ── Initialize conversation ────────────────────────────────────────────────
+export function initializeVaani(userId: string, userName?: string): VaaniContext {
+  const conversationId = `vaani-${userId}-${Date.now()}`;
+  conversationStore.set(conversationId, []);
+
+  return {
+    userId,
+    conversationId,
+    userProfile: {
+      name: userName || 'Valued Customer',
+      uid: userId,
+    },
+  };
+}
+
+// ── Process user query ─────────────────────────────────────────────────────
 export async function processVaaniQuery(
   userId: string,
   userMessage: string,
-  conversationId: string
+  conversationId: string,
+  userData?: { name?: string; progress?: any; policiesCount?: number }
 ): Promise<VaaniResponse> {
-  console.log('💬 Vaani processing:', userMessage);
+  const name = userData?.name || 'Valued Customer';
 
-  try {
-    // Retrieve conversation context
-    const cacheKey = `vaani:context:${userId}`;
-    let context = redis ? await redis.get(cacheKey) : null;
-    let vaaniContext: VaaniContext;
-
-    if (context) {
-      vaaniContext = JSON.parse(context);
-    } else {
-      vaaniContext = await initializeVaani(userId);
-    }
-
-    // Fetch existing conversation messages
-    const conversation = await prisma.aIConversation.findUnique({
-      where: { id: conversationId },
-    });
-
-    if (!conversation) {
-      throw new Error('Conversation not found');
-    }
-
-    // `messages` is stored as Prisma JsonValue (can be stringified JSON or a JSON array)
-    const rawMessages = conversation.messages as unknown;
-    const existingMessages: VaaniMessage[] =
-      typeof rawMessages === 'string'
-        ? JSON.parse(rawMessages || '[]')
-        : Array.isArray(rawMessages)
-          ? (rawMessages as VaaniMessage[])
-          : [];
-
-    // Build system prompt
-    const systemPrompt = buildVaaniSystemPrompt(vaaniContext);
-
-    // Prepare message history for LLM
-    const messageHistory = existingMessages.map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    messageHistory.push({
-      role: 'user',
-      content: userMessage,
-    });
-
-    // Call OpenAI
-    const llmResponse = await callOpenAI(systemPrompt, messageHistory);
-
-    // Analyze response and determine action
-    const vaaniResponse = await analyzeAndStructureResponse(
-      llmResponse,
-      userMessage,
-      vaaniContext
-    );
-
-    // Save conversation
-    existingMessages.push({
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date(),
-    });
-
-    existingMessages.push({
-      role: 'assistant',
-      content: vaaniResponse.message,
-      timestamp: new Date(),
-    });
-
-    await prisma.aIConversation.update({
-      where: { id: conversationId },
-      data: {
-        messages: JSON.stringify(existingMessages),
-        updatedAt: new Date(),
-      },
-    });
-
-    // Log action if applicable
-    if (vaaniResponse.action) {
-      await prisma.aIActionLog.create({
-        data: {
-          conversationId,
-          actionType: vaaniResponse.action.type,
-          actionStatus: 'initiated',
-          inputParameters: JSON.stringify(vaaniResponse.action.params),
-        },
-      });
-    }
-
-    // Save recommendation if applicable
-    if (vaaniResponse.type === 'plan') {
-      await prisma.aIRecommendation.create({
-        data: {
-          userId,
-          conversationId,
-          recommendationType: 'plan_match',
-          recommendedPlans: JSON.stringify(vaaniResponse.data),
-          reasoningLogic: vaaniResponse.message,
-          confidenceScore: vaaniResponse.confidence || 0.85,
-          status: 'pending',
-          expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        },
-      });
-    }
-
-    return vaaniResponse;
-  } catch (error) {
-    console.error('❌ Vaani query error:', error);
-
+  // ── No API key configured ──
+  if (!genAI) {
+    console.error('❌ Vaani: GEMINI_API_KEY not set in .env.local');
     return {
       type: 'error',
-      message: `I'm sorry, I encountered an error processing your request. Please try again or contact support.`,
-      data: { error: String(error) },
+      message: `⚙️ Vaani is not configured yet. Please set the GEMINI_API_KEY in your .env.local file.`,
     };
   }
-}
 
-/**
- * 🎭 Build system prompt for Vaani
- */
-function buildVaaniSystemPrompt(context: VaaniContext): string {
-  return `You are LIC's Vaani, an intelligent financial assistant for LIC Margadarshi.
-
-Your Role:
-- Help users understand LIC insurance policies
-- Explain plan features, benefits, and terms
-- Suggest suitable plans based on user's financial goals
-- Answer queries about claims, premiums, and policy management
-- Guide users through the app features
-
-CRITICAL RULES YOU MUST FOLLOW:
-1. ❌ NEVER perform calculations yourself - always delegate to the backend API
-2. ✅ When asked for premium/maturity calculations, respond with the calculation action
-3. 🔍 If unsure about something, ask for clarification rather than guessing
-4. 💰 All financial advice must be based on user's verified profile data
-5. 📊 Always cite data sources and calculations when providing financial info
-
-User Context:
-- Name: ${context.userProfile?.name}
-- Age: ${context.userProfile?.age}
-- Active Policies: ${context.userProfile?.policies || 0}
-- Active Goals: ${context.goals?.length || 0}
-
-Available Actions:
-- "calculate_premium": Calculate premium for a plan
-- "calculate_maturity": Calculate maturity value
-- "compare_plans": Compare multiple plans
-- "fetch_policy": Get policy details
-- "suggest_plans": Get plan recommendations
-- "fetch_transactions": Get transaction history
-
-Always respond in a friendly, professional tone. Use emojis appropriately.
-Format responses clearly with sections where applicable.`;
-}
-
-/**
- * 📞 Call OpenAI API
- */
-async function callOpenAI(systemPrompt: string, messages: any[]): Promise<string> {
-  if (!OPENAI_API_KEY) {
-    console.warn('⚠️ OpenAI API key not configured, using fallback response');
-    return 'I appreciate your question! To provide accurate information, I need access to LIC\'s systems. Please ensure your API keys are configured.';
+  // ── Get or create conversation history ──
+  if (!conversationStore.has(conversationId)) {
+    conversationStore.set(conversationId, []);
   }
+  const history = conversationStore.get(conversationId)!;
 
   try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Build model with system instruction
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: buildSystemPrompt(userData || {}),
+    });
 
-    return response.data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
-  } catch (error) {
-    console.error('OpenAI API error:', error);
-    throw new Error('Failed to process query with LLM');
+    // Convert our history to Gemini format
+    const geminiHistory = history.map(msg => ({
+      role: msg.role,          // 'user' | 'model'
+      parts: [{ text: msg.content }],
+    }));
+
+    // Start chat with existing history
+    const chat = model.startChat({
+      history: geminiHistory,
+    });
+
+    // Send message with retry on rate limit
+    const result = await withRetry(() => chat.sendMessage(userMessage));
+    const responseText = result.response.text();
+
+    if (!responseText) {
+      throw new Error('Empty response from Gemini');
+    }
+
+    // Save to store (keep last 30 messages to avoid memory bloat)
+    history.push({ role: 'user',  content: userMessage,   timestamp: new Date().toISOString() });
+    history.push({ role: 'model', content: responseText,  timestamp: new Date().toISOString() });
+    if (history.length > 30) history.splice(0, 2);
+    conversationStore.set(conversationId, history);
+
+    // Detect intent for response type
+    const lower = userMessage.toLowerCase();
+    if (lower.includes('compare') || lower.includes('vs ') || lower.includes(' vs')) {
+      return { type: 'action', message: responseText, action: { type: 'compare_plans', params: {} } };
+    }
+    if (lower.includes('suggest') || lower.includes('recommend') || lower.includes('best plan for me')) {
+      return { type: 'plan', message: responseText, data: { showPlansButton: true } };
+    }
+
+    return { type: 'text', message: responseText };
+
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('❌ Vaani Gemini error:', errMsg);
+
+    // Quota / rate limit
+    if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+      return {
+        type: 'error',
+        message: `⏳ I'm a bit busy right now (API quota reached). Please try again in a minute!\n\nMeanwhile, you can browse our **Plans** section or check your **Policies** on the dashboard.`,
+      };
+    }
+
+    // Model not found
+    if (errMsg.includes('404') || errMsg.includes('not found')) {
+      return {
+        type: 'error',
+        message: `🔧 There's a configuration issue with the AI model. Please contact support.\n\nError: Model "${GEMINI_MODEL}" not available.`,
+      };
+    }
+
+    // Auth error
+    if (errMsg.includes('API_KEY') || errMsg.includes('403') || errMsg.includes('PERMISSION')) {
+      return {
+        type: 'error',
+        message: `🔑 Invalid API key. Please check the GEMINI_API_KEY in .env.local.`,
+      };
+    }
+
+    // Generic — still give a helpful response
+    return {
+      type: 'error',
+      message: `😔 I ran into a temporary issue processing your request. Please try asking again!\n\n_(Error: ${errMsg.slice(0, 100)})_`,
+    };
   }
 }
 
-/**
- * 🔬 Analyze LLM response and structure with actions
- */
-async function analyzeAndStructureResponse(
-  llmResponse: string,
-  userMessage: string,
-  context: VaaniContext
-): Promise<VaaniResponse> {
-  // Detect intent from user message
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Check for calculation requests
-  if (
-    lowerMessage.includes('premium') ||
-    lowerMessage.includes('cost') ||
-    lowerMessage.includes('price')
-  ) {
-    return {
-      type: 'action',
-      message: llmResponse,
-      action: {
-        type: 'calculate_premium',
-        params: {
-          conversationId: context.conversationId,
-          requiresUserInput: true,
-        },
-      },
-    };
-  }
-
-  if (
-    lowerMessage.includes('maturity') ||
-    lowerMessage.includes('return') ||
-    lowerMessage.includes('benefit')
-  ) {
-    return {
-      type: 'action',
-      message: llmResponse,
-      action: {
-        type: 'calculate_maturity',
-        params: {
-          conversationId: context.conversationId,
-          requiresUserInput: true,
-        },
-      },
-    };
-  }
-
-  if (
-    lowerMessage.includes('compare') ||
-    lowerMessage.includes('better') ||
-    lowerMessage.includes('choose')
-  ) {
-    return {
-      type: 'action',
-      message: llmResponse,
-      action: {
-        type: 'compare_plans',
-        params: {
-          conversationId: context.conversationId,
-          requiresUserInput: true,
-        },
-      },
-    };
-  }
-
-  if (
-    lowerMessage.includes('suggest') ||
-    lowerMessage.includes('recommend') ||
-    lowerMessage.includes('suitable')
-  ) {
-    return {
-      type: 'plan',
-      message: llmResponse,
-      data: {
-        shouldFetchRecommendations: true,
-        userProfile: context.userProfile,
-      },
-      confidence: 0.85,
-    };
-  }
-
-  // Default response
-  return {
-    type: 'text',
-    message: llmResponse,
-  };
-}
-
-export { prisma, redis };
+export { conversationStore };

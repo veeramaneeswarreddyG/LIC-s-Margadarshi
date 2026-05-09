@@ -1,0 +1,8 @@
+{
+  "nav": { "dashboard": "डॅशबोर्ड", "policies": "माझ्या पॉलिसी", "plans": "प्लान पाहा", "news": "LIC बातम्या", "profile": "प्रोफाइल", "settings": "सेटिंग्ज", "support": "मदत", "logout": "साइन आउट" },
+  "dashboard": { "welcome": "पुन्हा स्वागत", "totalCoverage": "एकूण कव्हरेज", "premiumDue": "प्रीमियम देय", "activePolicies": "सक्रिय पॉलिसी", "nextDue": "पुढील देय", "payNow": "आता भरा", "viewAll": "सर्व पहा" },
+  "policies": { "title": "माझ्या पॉलिसी", "active": "सक्रिय", "sumAssured": "विमा रक्कम", "premium": "प्रीमियम", "nextDue": "पुढील देय तारीख", "maturityDate": "मॅच्युरिटी तारीख", "nominee": "नॉमिनी", "payPremium": "प्रीमियम भरा", "raiseClaim": "दावा करा", "overview": "आढावा", "history": "इतिहास", "documents": "कागदपत्रे" },
+  "vaani": { "title": "LIC ची वाणी", "subtitle": "AI सहाय्यक", "placeholder": "LIC बद्दल काहीही विचारा...", "listening": "ऐकत आहे… बोला", "poweredBy": "Gemini AI द्वारे" },
+  "auth": { "login": "साइन इन", "logout": "साइन आउट", "phone": "फोन नंबर", "otp": "OTP टाका", "sendOtp": "OTP पाठवा", "verify": "सत्यापित करा" },
+  "common": { "loading": "लोड होत आहे…", "error": "काहीतरी चुकले", "retry": "पुन्हा प्रयत्न करा", "close": "बंद करा", "save": "जतन करा", "cancel": "रद्द करा", "back": "मागे", "done": "झाले" }
+}

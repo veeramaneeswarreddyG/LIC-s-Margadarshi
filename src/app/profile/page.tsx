@@ -8,9 +8,18 @@ import {
   Shield, CheckCircle, Edit3, Save, X
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserData } from '@/hooks/useUserData';
 import { useToast } from '@/hooks/useToast';
-import { useTheme } from '@/context/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import DashboardShell from '@/components/DashboardShell';
+import PageHeader from '@/components/PageHeader';
+import { ResultModal } from '@/components/ResultModal';
+
+/* Inline field error helper */
+function FieldErr({ msg }: { msg: string }) {
+  if (!msg) return null;
+  return <p className="field-error-msg">{msg}</p>;
+}
 
 const SECTION_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -27,21 +36,23 @@ export default function ProfilePage() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [notifToggles, setNotifToggles] = useState({ push: true, email: false, sms: true, marketing: false });
 
+  // Inline field errors
+  const [nameErr, setNameErr] = useState('');
+  const [emailErr, setEmailErr] = useState('');
+  const [pwErrs, setPwErrs] = useState({ current: '', next: '', confirm: '' });
+
+  // Result modal
+  const [result, setResult] = useState<{
+    type: 'success' | 'error'; title: string; message: string; action: string;
+  } | null>(null);
+
   const router = useRouter();
   const { user, updateUser, loading } = useAuth();
+  const { policies, completeProfile } = useUserData();
   const { showToast, ToastContainer } = useToast();
-  const { isDark } = useTheme();
+  const T = useThemeColors();
+  const { bg, surface, surface2, border, text, text2, hint, headerBg, shadow, isDark } = T;
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const bg = isDark ? '#0F1117' : '#FAFAFA';
-  const surface = isDark ? '#161B27' : '#FFFFFF';
-  const surface2 = isDark ? '#1E2436' : '#F8F9FA';
-  const border = isDark ? 'rgba(255,255,255,0.07)' : '#DADCE0';
-  const text = isDark ? '#E2E8F0' : '#202124';
-  const text2 = isDark ? '#94A3B8' : '#5F6368';
-  const hint = isDark ? '#64748B' : '#9AA0A6';
-  const headerBg = isDark ? 'rgba(22,27,39,0.95)' : '#FFFFFF';
-
   useEffect(() => {
     if (user) setFormData({ name: user.name || '', email: user.email || '' });
   }, [user]);
@@ -55,27 +66,38 @@ export default function ProfilePage() {
   };
 
   const handleProfileSave = async () => {
-    if (!formData.name.trim()) { showToast('Name is required', 'error'); return; }
-    if (formData.email && !formData.email.includes('@')) { showToast('Invalid email', 'error'); return; }
+    let ok = true;
+    if (!formData.name.trim()) { setNameErr('Full name is required'); ok = false; } else setNameErr('');
+    if (formData.email && !formData.email.includes('@')) { setEmailErr('Enter a valid email (e.g. you@example.com)'); ok = false; } else setEmailErr('');
+    if (!ok) return;
     try {
       await updateUser({ name: formData.name, email: formData.email || undefined, photoURL: profileImage || undefined });
+      await completeProfile();
       setIsEditing(false);
-      showToast('Profile updated!', 'success');
-    } catch (e: any) { showToast(e.message, 'error'); }
+      setResult({ type: 'success', title: 'Profile Saved!', message: 'Your profile information has been updated successfully.', action: 'Done' });
+    } catch (e: any) {
+      setResult({ type: 'error', title: 'Save Failed', message: e.message || 'Could not update your profile. Please try again.', action: 'Try Again' });
+    }
   };
 
   const handlePwSave = async () => {
-    if (!pwData.current || !pwData.next || !pwData.confirm) { showToast('Fill all fields', 'error'); return; }
-    if (pwData.next.length < 6) { showToast('Min 6 characters', 'error'); return; }
-    if (pwData.next !== pwData.confirm) { showToast('Passwords do not match', 'error'); return; }
-    showToast('Password updated!', 'success');
+    let ok = true;
+    const errs = { current: '', next: '', confirm: '' };
+    if (!pwData.current) { errs.current = 'Current password is required'; ok = false; }
+    if (!pwData.next) { errs.next = 'New password is required'; ok = false; }
+    else if (pwData.next.length < 6) { errs.next = 'Password must be at least 6 characters'; ok = false; }
+    if (pwData.next && pwData.next !== pwData.confirm) { errs.confirm = 'Passwords do not match'; ok = false; }
+    setPwErrs(errs);
+    if (!ok) return;
+    setResult({ type: 'success', title: 'Password Updated!', message: 'Your password has been changed successfully. Stay secure!', action: 'Done' });
     setPwData({ current: '', next: '', confirm: '' });
+    setPwErrs({ current: '', next: '', confirm: '' });
   };
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 44, height: 44, border: '3px solid #F1F3F4', borderTopColor: '#C8102E', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <div style={{ minHeight: '100vh', background: bg || '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 44, height: 44, border: `3px solid ${border || '#F1F3F4'}`, borderTopColor: '#C8102E', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
@@ -92,21 +114,25 @@ export default function ProfilePage() {
 
   return (
     <DashboardShell>
-    <div style={{ minHeight: '100vh', background: bg, color: text, fontFamily: 'Inter, sans-serif', transition: 'background 0.3s, color 0.3s' }}>
+    <div suppressHydrationWarning style={{ minHeight: '100vh', background: bg, color: text, fontFamily: 'Inter, sans-serif', transition: 'background 0.3s, color 0.3s' }}>
       <ToastContainer />
+      {result && (
+        <ResultModal
+          type={result.type}
+          title={result.title}
+          message={result.message}
+          actionLabel={result.action}
+          onAction={() => setResult(null)}
+        />
+      )}
       <style>{`.animate-spin{animation:spin 1s linear infinite}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
 
       {/* ── Header ── */}
-      <header style={{
-        height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', borderBottom: `1px solid ${border}`, background: headerBg,
-        boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(60,64,67,0.08)',
-        position: 'sticky', top: 0, zIndex: 30, transition: 'background 0.3s, border-color 0.3s',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <PageHeader>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.back()}
-            style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${border}`, background: surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: text }}>
-            <ArrowLeft size={16} />
+            style={{ width: 34, height: 34, borderRadius: '50%', border: `1px solid ${border}`, background: surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: text }}>
+            <ArrowLeft size={15} />
           </button>
           <h1 style={{ fontSize: 17, fontWeight: 800, color: text }}>My Profile</h1>
         </div>
@@ -116,23 +142,23 @@ export default function ProfilePage() {
             {isEditing ? (
               <>
                 <button onClick={() => setIsEditing(false)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid #dadce0', background: '#f8f9fa', color: '#5f6368', fontSize: 13, cursor: 'pointer' }}>
-                  <X size={14} /> Cancel
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: `1px solid ${border}`, background: surface2, color: text2, fontSize: 12, cursor: 'pointer' }}>
+                  <X size={13} /> Cancel
                 </button>
                 <button onClick={handleProfileSave}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', background: '#C8102E', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  <Save size={14} /> Save
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: 'none', background: 'linear-gradient(135deg,#C8102E,#a00d24)', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(200,16,46,0.35)' }}>
+                  <Save size={13} /> Save
                 </button>
               </>
             ) : (
               <button onClick={() => setIsEditing(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: '1px solid #DADCE0', background: '#F8F9FA', color: '#C8102E', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                <Edit3 size={14} /> Edit Profile
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: `1px solid ${border}`, background: surface2, color: '#C8102E', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <Edit3 size={13} /> Edit Profile
               </button>
             )}
           </div>
         )}
-      </header>
+      </PageHeader>
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 60px' }}>
 
@@ -175,8 +201,8 @@ export default function ProfilePage() {
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>{user.name || 'User'}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <Phone size={13} color="#9aa0a6" />
-                <span style={{ fontSize: 13, color: '#5f6368' }}>{user.phoneNumber}</span>
+                <Phone size={13} color={hint} />
+                <span style={{ fontSize: 13, color: text2 }}>{user.phoneNumber}</span>
                 <span style={{ background: 'rgba(34,197,94,0.18)', color: '#16a34a', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20 }}>Verified</span>
               </div>
               {user.email && (
@@ -189,7 +215,7 @@ export default function ProfilePage() {
 
             {/* Policy count badge */}
             <div style={{ marginLeft: 'auto', textAlign: 'center', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '14px 22px', flexShrink: 0 }}>
-              <div style={{ fontSize: 26, fontWeight: 900, color: '#FFB300' }}>3</div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#FFB300' }}>{policies.length}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>Active<br />Policies</div>
             </div>
           </div>
@@ -214,73 +240,83 @@ export default function ProfilePage() {
 
         {/* ── PROFILE SECTION ── */}
         {activeSection === 'profile' && (
-          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '24px', boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(60,64,67,0.08)', transition: 'background 0.3s' }}>
+          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '24px', boxShadow: shadow, transition: 'background 0.3s' }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 20, color: hint, letterSpacing: '0.8px', textTransform: 'uppercase' }}>PERSONAL INFORMATION</h3>
 
             {/* Name */}
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: nameErr ? 4 : 20 }}>
               <label style={labelStyle}>FULL NAME</label>
               <div style={{ position: 'relative' }}>
-                <User size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5f6368' }} />
+                <User size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: hint }} />
                 <input type="text" value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  disabled={!isEditing} style={{ ...inputStyle, opacity: !isEditing ? 0.6 : 1 }}
+                  onChange={e => { setFormData({ ...formData, name: e.target.value }); setNameErr(''); }}
+                  disabled={!isEditing}
+                  className={isEditing && nameErr ? 'field-error' : ''}
+                  style={{ ...inputStyle, opacity: !isEditing ? 0.6 : 1 }}
                   placeholder="Your full name"
                 />
               </div>
+              {isEditing && <FieldErr msg={nameErr} />}
             </div>
 
             {/* Phone (locked) */}
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>PHONE NUMBER</label>
               <div style={{ position: 'relative' }}>
-                <Phone size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5f6368' }} />
+                <Phone size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: hint }} />
                 <input type="tel" value={user.phoneNumber} disabled style={{ ...inputStyle, opacity: 0.5, paddingRight: 90 }} />
                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'rgba(34,197,94,0.1)', color: '#16a34a', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>Verified</span>
               </div>
             </div>
 
             {/* Email */}
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: emailErr ? 4 : 8 }}>
               <label style={labelStyle}>EMAIL ADDRESS</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5f6368' }} />
+                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: hint }} />
                 <input type="email" value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!isEditing} style={{ ...inputStyle, opacity: !isEditing ? 0.6 : 1 }}
+                  onChange={e => { setFormData({ ...formData, email: e.target.value }); setEmailErr(''); }}
+                  disabled={!isEditing}
+                  className={isEditing && emailErr ? 'field-error' : ''}
+                  style={{ ...inputStyle, opacity: !isEditing ? 0.6 : 1 }}
                   placeholder="your@email.com"
                 />
               </div>
+              {isEditing && <FieldErr msg={emailErr} />}
             </div>
           </div>
         )}
 
         {/* ── SECURITY SECTION ── */}
         {activeSection === 'security' && (
-          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '24px', boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(60,64,67,0.08)', transition: 'background 0.3s' }}>
+          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '24px', boxShadow: shadow, transition: 'background 0.3s' }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 20, color: hint, letterSpacing: '0.8px', textTransform: 'uppercase' }}>CHANGE PASSWORD</h3>
 
             {[
               { key: 'current', label: 'CURRENT PASSWORD', placeholder: 'Enter current password' },
-              { key: 'next', label: 'NEW PASSWORD', placeholder: 'Min 6 characters' },
+              { key: 'next',    label: 'NEW PASSWORD',      placeholder: 'Min 6 characters' },
               { key: 'confirm', label: 'CONFIRM NEW PASSWORD', placeholder: 'Re-enter new password' },
             ].map(f => (
-              <div key={f.key} style={{ marginBottom: 18 }}>
+              <div key={f.key} style={{ marginBottom: pwErrs[f.key as keyof typeof pwErrs] ? 4 : 18 }}>
                 <label style={labelStyle}>{f.label}</label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5f6368' }} />
-                  <input type={showPw[f.key as keyof typeof showPw] ? 'text' : 'password'}
+                  <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: hint }} />
+                  <input
+                    id={`profile-pw-${f.key}`}
+                    type={showPw[f.key as keyof typeof showPw] ? 'text' : 'password'}
                     value={pwData[f.key as keyof typeof pwData]}
-                    onChange={e => setPwData({ ...pwData, [f.key]: e.target.value })}
+                    onChange={e => { setPwData({ ...pwData, [f.key]: e.target.value }); setPwErrs({ ...pwErrs, [f.key]: '' }); }}
                     placeholder={f.placeholder}
+                    className={pwErrs[f.key as keyof typeof pwErrs] ? 'field-error' : ''}
                     style={{ ...inputStyle, paddingRight: 44 }}
                   />
                   <button type="button"
                     onClick={() => setShowPw({ ...showPw, [f.key]: !showPw[f.key as keyof typeof showPw] })}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#5f6368', cursor: 'pointer' }}>
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: hint, cursor: 'pointer' }}>
                     {showPw[f.key as keyof typeof showPw] ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                <FieldErr msg={pwErrs[f.key as keyof typeof pwErrs]} />
               </div>
             ))}
 
@@ -295,7 +331,7 @@ export default function ProfilePage() {
                 <CheckCircle size={15} color="#22c55e" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#16a34a' }}>Account Secured</span>
               </div>
-              <p style={{ fontSize: 12, color: '#5f6368', lineHeight: 1.6 }}>Phone number verified · 2-step authentication enabled</p>
+              <p style={{ fontSize: 12, color: text2, lineHeight: 1.6 }}>Phone number verified · 2-step authentication enabled</p>
             </div>
           </div>
         )}
@@ -305,7 +341,7 @@ export default function ProfilePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Notifications */}
-            <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '20px', boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(60,64,67,0.08)', transition: 'background 0.3s' }}>
+            <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: '20px', boxShadow: shadow, transition: 'background 0.3s' }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 18, color: hint, letterSpacing: '0.8px', textTransform: 'uppercase' }}>NOTIFICATIONS</h3>
               {(Object.keys(notifToggles) as (keyof typeof notifToggles)[]).map((key, i) => {
                 const labels: Record<string, { label: string; sub: string }> = {
@@ -318,12 +354,12 @@ export default function ProfilePage() {
                 return (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: i < 3 ? 16 : 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F9FA', border: '1px solid #DADCE0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Bell size={15} color="#9aa0a6" />
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: surface2, border: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Bell size={15} color={hint} />
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{labels[key].label}</div>
-                        <div style={{ fontSize: 11, color: '#5f6368', marginTop: 1 }}>{labels[key].sub}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: text }}>{labels[key].label}</div>
+                        <div style={{ fontSize: 11, color: text2, marginTop: 1 }}>{labels[key].sub}</div>
                       </div>
                     </div>
                     <button onClick={() => setNotifToggles({ ...notifToggles, [key]: !on })}
@@ -348,8 +384,8 @@ export default function ProfilePage() {
             {/* Danger zone */}
             <div style={{ background: 'rgba(200,16,46,0.05)', border: '1px solid rgba(200,16,46,0.2)', borderRadius: 18, padding: '24px' }}>
               <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14, color: '#ff6b6b' }}>DANGER ZONE</h3>
-              <p style={{ fontSize: 12, color: '#5f6368', marginBottom: 16, lineHeight: 1.6 }}>Once you delete your account, there is no going back. Please be certain.</p>
-              <button style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(200,16,46,0.4)', background: '#f8f9fa', color: '#ff6b6b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              <p style={{ fontSize: 12, color: text2, marginBottom: 16, lineHeight: 1.6 }}>Once you delete your account, there is no going back. Please be certain.</p>
+              <button style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(200,16,46,0.4)', background: surface2, color: '#ff6b6b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Delete Account
               </button>
             </div>

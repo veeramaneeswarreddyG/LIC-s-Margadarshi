@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Search, FileText, Bell, LogOut, ChevronRight,
-  Shield, Heart, PiggyBank, AlertCircle,
+  Shield, Heart, PiggyBank, AlertCircle, Calculator,
   Wallet, Settings, Phone, Newspaper, Moon, Sun,
   TrendingUp, Home, Menu, X,
 } from 'lucide-react';
@@ -44,13 +44,13 @@ export default function Sidebar() {
   const D = isDark;
   const SB = {
     bg:        D ? '#1B1D2A'                         : '#FFFFFF',
-    text:      D ? '#7B859A'                         : '#5F6368',
+    text:      D ? '#7B859A'                         : '#3C4043',
     active:    D ? '#FFFFFF'                         : '#1a1a1a',
     activeBg:  D ? 'rgba(200,16,46,0.15)'            : 'rgba(200,16,46,0.08)',
-    hoverBg:   D ? 'rgba(255,255,255,0.05)'          : 'rgba(0,0,0,0.04)',
+    hoverBg:   D ? 'rgba(255,255,255,0.07)'          : 'rgba(0,0,0,0.06)',
     hoverText: D ? '#C0C8D8'                         : '#202124',
-    divider:   D ? 'rgba(255,255,255,0.06)'          : '#EBEBEB',
-    section:   D ? '#3A4060'                         : '#B0B8C8',
+    divider:   D ? 'rgba(255,255,255,0.06)'          : '#E8EAED',
+    section:   D ? '#4A5070'                         : '#6B7280',
     srchBg:    D ? 'rgba(255,255,255,0.06)'          : '#F1F3F4',
     srchBdr:   D ? 'rgba(255,255,255,0.05)'          : '#E0E0E0',
     thBg:      D ? 'rgba(255,255,255,0.05)'          : '#F1F3F4',
@@ -59,22 +59,23 @@ export default function Sidebar() {
   };
 
   const NAV = [
-    { id: 'dashboard',     label: 'Dashboard',     icon: Home,       route: '/dashboard', badge: null },
-    { id: 'policies',      label: 'My Policies',   icon: FileText,   route: '/policies',  badge: null },
-    { id: 'plans',         label: 'Explore Plans', icon: TrendingUp, route: '/plans',     badge: null },
-    { id: 'payments',      label: 'Payments',      icon: Wallet,     route: '/policies',  badge: 3    },
-    { id: 'news',          label: 'LIC News',      icon: Newspaper,  route: '/news',      badge: null },
-    { id: 'notifications', label: 'Notifications', icon: Bell,       route: '/dashboard', badge: 14   },
+    { id: 'dashboard',     label: 'Dashboard',     icon: Home,       route: '/dashboard',   badge: null },
+    { id: 'policies',      label: 'My Policies',   icon: FileText,   route: '/policies',    badge: null },
+    { id: 'plans',         label: 'Explore Plans', icon: TrendingUp, route: '/plans',       badge: null },
+    { id: 'calculator',    label: 'Calculator',    icon: Calculator,  route: '/calculator',  badge: null },
+    { id: 'payments',      label: 'Payments',      icon: Wallet,     route: '/policies',    badge: 3    },
+    { id: 'news',          label: 'LIC News',      icon: Newspaper,  route: '/news',        badge: null },
+    { id: 'notifications', label: 'Notifications', icon: Bell,       route: '/dashboard',   badge: 14   },
   ];
   const BTNS = [
     { id: 'settings', label: 'Settings', icon: Settings, route: '/profile'   },
     { id: 'support',  label: 'Support',  icon: Phone,    route: '/dashboard' },
   ];
   const GRP = [
-    { label: 'Term Plans',    color: '#3B82F6', bg: 'rgba(59,130,246,0.15)',  icon: Shield      },
-    { label: 'Endowment',     color: '#10B981', bg: 'rgba(16,185,129,0.15)',  icon: Heart       },
-    { label: 'Pension Plans', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', icon: PiggyBank   },
-    { label: 'Claim Help',    color: '#EF4444', bg: 'rgba(239,68,68,0.15)',   icon: AlertCircle },
+    { label: 'Term Plans',    color: '#3B82F6', bg: 'rgba(59,130,246,0.15)',  icon: Shield,      category: 'term'      },
+    { label: 'Endowment',     color: '#10B981', bg: 'rgba(16,185,129,0.15)',  icon: Heart,       category: 'endowment' },
+    { label: 'Pension Plans', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', icon: PiggyBank,   category: 'pension'   },
+    { label: 'Claim Help',    color: '#EF4444', bg: 'rgba(239,68,68,0.15)',   icon: AlertCircle, category: 'health'    },
   ];
 
   /* ─── Single nav button (desktop expanded/collapsed + mobile) ─── */
@@ -181,15 +182,28 @@ export default function Sidebar() {
         <div style={{ height: 1, background: SB.divider, margin: '10px 4px' }} />
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: SB.section, padding: exp ? '0 8px 8px' : '0 0 8px', textAlign: exp ? 'left' : 'center' }}>Group</div>
         {GRP.map(item => (
-          <button key={item.label} onClick={() => { router.push('/plans'); setMobileOpen(false); }}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: exp ? 12 : 0, justifyContent: exp ? 'flex-start' : 'center', padding: exp ? '8px 10px' : '8px 0', borderRadius: 9, border: 'none', cursor: 'pointer', marginBottom: 1, background: 'transparent', color: SB.text, fontSize: 13, transition: 'all 0.15s', whiteSpace: 'nowrap', overflow: 'hidden', borderLeft: '3px solid transparent' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = SB.hoverBg; (e.currentTarget as HTMLElement).style.color = SB.hoverText; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = SB.text; }}
+          <button key={item.label}
+            onClick={() => { router.push(`/plans?category=${item.category}`); setMobileOpen(false); }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: exp ? 12 : 0, justifyContent: exp ? 'flex-start' : 'center', padding: exp ? '8px 10px' : '8px 0', borderRadius: 9, border: 'none', cursor: 'pointer', marginBottom: 1, background: 'transparent', color: SB.text, fontSize: 13, fontWeight: 500, transition: 'all 0.15s', whiteSpace: 'nowrap', overflow: 'hidden', borderLeft: '3px solid transparent' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = SB.hoverBg;
+              (e.currentTarget as HTMLElement).style.color = SB.hoverText;
+              if (!exp) {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTooltip({ label: item.label, y: r.top + r.height / 2 });
+              }
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = SB.text;
+              setTooltip(null);
+            }}
           >
-            <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Icon circle — use stronger opacity so it's visible on white bg */}
+            <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: D ? item.bg : item.bg.replace('0.15', '0.22'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${item.color}33` }}>
               <item.icon size={13} style={{ color: item.color }} />
             </div>
-            {exp && <><span style={{ flex: 1 }}>{item.label}</span><ChevronRight size={13} style={{ color: SB.section, flexShrink: 0 }} /></>}
+            {exp && <><span style={{ flex: 1, color: SB.text }}>{item.label}</span><ChevronRight size={13} style={{ color: SB.section, flexShrink: 0 }} /></>}
           </button>
         ))}
       </nav>

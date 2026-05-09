@@ -2,6 +2,35 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
+export interface UserProgress {
+  profile_completed: boolean;
+  policies_added: number;
+  goals_added: number;
+  calculations_done: number;
+  payments_done: number;
+  completion_percentage: number;
+  last_updated: number;
+}
+
+export interface UserPolicy {
+  id: string;
+  name: string;
+  type: string;
+  sum: string;
+  premium: string;
+  nextDue: string;
+  paidPct: number;
+  status: string;
+}
+
+export interface UserActivity {
+  id: string;
+  type: 'payment' | 'policy' | 'alert' | 'success' | 'info';
+  text: string;
+  sub: string;
+  timestamp: number;
+}
+
 export interface User {
   uid: string;
   phoneNumber: string;
@@ -9,6 +38,9 @@ export interface User {
   email?: string;
   photoURL?: string;
   hasPassword?: boolean;
+  progress?: UserProgress;
+  policies?: UserPolicy[];
+  activities?: UserActivity[];
 }
 
 interface AuthState {
@@ -75,16 +107,13 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Initialize synchronously so `loading` is never `true` on first render.
-  // This eliminates the spinner flicker on every page load/navigation.
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    try {
-      const stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
-      return { user: stored, loading: false, error: null };
-    } catch {
-      // sessionStorage not available (SSR guard)
-      return { user: null, loading: false, error: null };
-    }
+  // Always start with loading: true on BOTH server and client.
+  // This prevents hydration mismatch caused by sessionStorage being
+  // unavailable during SSR but available on the client.
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    loading: true,
+    error: null,
   });
 
   const setLoading = (loading: boolean) =>
@@ -100,19 +129,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthState(prev => ({ ...prev, user, loading: false, error: null }));
   };
 
-  // Session is restored synchronously in the useState initializer above.
-  // This useEffect is kept only as a safety net for SSR environments
-  // where sessionStorage isn't available during the initial render.
+  // Restore session from sessionStorage after mount (client-only).
+  // Both server and client now render the same initial loading state,
+  // eliminating the hydration mismatch.
   useEffect(() => {
-    setAuthState(prev => {
-      if (prev.user !== null) return prev; // already restored, skip
-      const stored = getSessionUser();
-      return stored ? { user: stored, loading: false, error: null } : prev;
-    });
+    const stored = getSessionUser();
+    setAuthState({ user: stored, loading: false, error: null });
   }, []);
 
   // ─── signInWithPhone ───────────────────────────────────────────────────────
-  // Returns a mock ConfirmationResult. OTP "123456" always works in dev.
   const signInWithPhone = async (
     phoneNumber: string,
     _recaptchaVerifier?: any
@@ -122,7 +147,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await new Promise(r => setTimeout(r, 800)); // simulate network
     setLoading(false);
 
-    const verificationId = `mock-vid-${Date.now()}`;
+    const verificationId = `vid-${Date.now()}`;
+    const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+
+    // Store OTP in session storage to verify later
+    const pendingVerifications = JSON.parse(sessionStorage.getItem('lic_pending_otps') || '{}');
+    pendingVerifications[verificationId] = { otp: generatedOTP, phone: phoneNumber, expiresAt: Date.now() + 5 * 60 * 1000 };
+    sessionStorage.setItem('lic_pending_otps', JSON.stringify(pendingVerifications));
+
+    // Simulate sending SMS (Pop up an alert so the user actually sees it like a phone notification)
+    window.alert(`💬 SIMULATED SMS to ${phoneNumber}:\n\nYour LIC Margadarshi verification code is ${generatedOTP}. Valid for 5 minutes.`);
+
     return {
       verificationId,
       confirm: async (otp: string) => {
@@ -143,19 +178,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     clearError();
     await new Promise(r => setTimeout(r, 800));
 
-    if (otp !== '123456') {
+    const pendingVerifications = JSON.parse(sessionStorage.getItem('lic_pending_otps') || '{}');
+    const record = pendingVerifications[_vid];
+
+    if (!record) {
       setLoading(false);
-      const err = 'Invalid OTP. Use 123456 for demo.';
+      const err = 'Verification session expired. Please request a new OTP.';
       setError(err);
       throw new Error(err);
     }
 
+    if (record.expiresAt < Date.now()) {
+      delete pendingVerifications[_vid];
+      sessionStorage.setItem('lic_pending_otps', JSON.stringify(pendingVerifications));
+      setLoading(false);
+      const err = 'OTP has expired. Please generate a new OTP.';
+      setError(err);
+      throw new Error(err);
+    }
+
+    if (otp !== record.otp) {
+      setLoading(false);
+      const err = 'Incorrect OTP. Please check and re-enter.';
+      setError(err);
+      throw new Error(err);
+    }
+
+    // OTP verified successfully, clean up
+    delete pendingVerifications[_vid];
+    sessionStorage.setItem('lic_pending_otps', JSON.stringify(pendingVerifications));
+
     // Check if user exists with this phone number
-    // (phone comes from the stored verification context)
+    const defaultProgress: UserProgress = {
+      profile_completed: false,
+      policies_added: 0,
+      goals_added: 0,
+      calculations_done: 0,
+      payments_done: 0,
+      completion_percentage: 0,
+      last_updated: Date.now()
+    };
+
     const mockUser: User = {
       uid: `uid-${Date.now()}`,
-      phoneNumber: '+919876543210',
+      phoneNumber: record.phone,
       name: undefined, // means new user
+      progress: defaultProgress,
+      policies: [],
+      activities: []
     };
 
     setLoading(false);
@@ -209,6 +279,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error(err);
     }
 
+    const defaultProgress: UserProgress = {
+      profile_completed: true, // completed basic profile during signup
+      policies_added: 0,
+      goals_added: 0,
+      calculations_done: 0,
+      payments_done: 0,
+      completion_percentage: 30, // 30% for profile
+      last_updated: Date.now()
+    };
+
     const newUser: User & { password?: string } = {
       uid: `uid-${Date.now()}`,
       phoneNumber,
@@ -216,6 +296,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       hasPassword: !!password,
       password: password || undefined,
+      progress: defaultProgress,
+      policies: [],
+      activities: [{ id: Date.now().toString(), type: 'success', text: 'Account created', sub: 'Welcome to LIC Margadarshi', timestamp: Date.now() }]
     };
 
     users[newUser.uid] = newUser;

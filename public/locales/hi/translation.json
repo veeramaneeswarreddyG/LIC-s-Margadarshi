@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "policies": "मेरी पॉलिसियाँ",
+    "plans": "प्लान देखें",
+    "news": "LIC समाचार",
+    "profile": "प्रोफ़ाइल",
+    "settings": "सेटिंग्स",
+    "support": "सहायता",
+    "logout": "साइन आउट"
+  },
+  "dashboard": {
+    "welcome": "वापस स्वागत है",
+    "totalCoverage": "कुल कवरेज",
+    "premiumDue": "प्रीमियम देय",
+    "activePolicies": "सक्रिय पॉलिसियाँ",
+    "nextDue": "अगली देय तिथि",
+    "payNow": "अभी भुगतान करें",
+    "viewAll": "सभी देखें",
+    "recentActivity": "हाल की गतिविधि"
+  },
+  "policies": {
+    "title": "मेरी पॉलिसियाँ",
+    "active": "सक्रिय",
+    "lapsed": "समाप्त",
+    "matured": "परिपक्व",
+    "sumAssured": "बीमा राशि",
+    "premium": "प्रीमियम",
+    "nextDue": "अगली देय तिथि",
+    "maturityDate": "परिपक्वता तिथि",
+    "nominee": "नॉमिनी",
+    "policyTerm": "पॉलिसी अवधि",
+    "payPremium": "प्रीमियम भरें",
+    "raiseClaim": "दावा करें",
+    "overview": "अवलोकन",
+    "history": "इतिहास",
+    "documents": "दस्तावेज़"
+  },
+  "plans": {
+    "title": "LIC प्लान देखें",
+    "search": "नाम या नंबर से खोजें…",
+    "all": "सभी प्लान",
+    "viewDetails": "विवरण देखें",
+    "getPlan": "यह प्लान लें",
+    "entryAge": "प्रवेश आयु",
+    "policyTerm": "पॉलिसी अवधि",
+    "minSA": "न्यूनतम बीमा राशि",
+    "startingFrom": "से शुरू"
+  },
+  "vaani": {
+    "title": "LIC की वाणी",
+    "subtitle": "AI सहायक",
+    "placeholder": "LIC के बारे में कुछ भी पूछें...",
+    "listening": "सुन रहे हैं… बोलें",
+    "poweredBy": "Gemini AI द्वारा संचालित",
+    "disclaimer": "वित्तीय सलाह नहीं"
+  },
+  "auth": {
+    "login": "साइन इन",
+    "logout": "साइन आउट",
+    "phone": "फ़ोन नंबर",
+    "otp": "OTP डालें",
+    "sendOtp": "OTP भेजें",
+    "verify": "सत्यापित करें और लॉगिन करें",
+    "resend": "OTP दोबारा भेजें"
+  },
+  "common": {
+    "loading": "लोड हो रहा है…",
+    "error": "कुछ गलत हुआ",
+    "retry": "पुनः प्रयास करें",
+    "close": "बंद करें",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "edit": "संपादित करें",
+    "search": "खोजें",
+    "back": "वापस",
+    "next": "अगला",
+    "done": "हो गया"
+  }
+}

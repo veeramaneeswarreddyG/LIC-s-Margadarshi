@@ -8,62 +8,11 @@ import {
   ChevronRight, Phone, X
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/context/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import DashboardShell from '@/components/DashboardShell';
+import PageHeader from '@/components/PageHeader';
 
-// Mock detailed policy data (would come from DB in production)
-const MY_POLICIES_DATA = [
-  {
-    id: 'P001', name: 'Jeevan Anand', planNo: '815', type: 'Endowment',
-    sumAssured: '₹15,00,000', premium: '₹6,420', premiumFreq: 'Yearly',
-    startDate: '12 Mar 2021', maturityDate: '12 Mar 2036',
-    nextDue: '12 Mar 2027', paidPct: 68, color: '#FFB300',
-    icon: Shield, status: 'Active', policyTerm: '15 years',
-    premiumTerm: '15 years', nominee: 'Priya (Spouse)',
-    totalPremiumPaid: '₹38,520', bonusAccrued: '₹42,000',
-    premiumHistory: [
-      { date: '12 Mar 2026', amount: '₹6,420', status: 'Paid' },
-      { date: '12 Mar 2025', amount: '₹6,420', status: 'Paid' },
-      { date: '12 Mar 2024', amount: '₹6,420', status: 'Paid' },
-      { date: '12 Mar 2023', amount: '₹6,420', status: 'Paid' },
-      { date: '12 Mar 2022', amount: '₹6,420', status: 'Paid' },
-      { date: '12 Mar 2021', amount: '₹6,420', status: 'Paid' },
-    ],
-  },
-  {
-    id: 'P002', name: 'Jeevan Umang', planNo: '945', type: 'Whole Life',
-    sumAssured: '₹25,00,000', premium: '₹11,200', premiumFreq: 'Yearly',
-    startDate: '02 Aug 2022', maturityDate: '02 Aug 2072',
-    nextDue: '02 Aug 2026', paidPct: 42, color: '#C8102E',
-    icon: Heart, status: 'Active', policyTerm: 'Whole Life (age 100)',
-    premiumTerm: '20 years', nominee: 'Rama (Mother)',
-    totalPremiumPaid: '₹44,800', bonusAccrued: '₹28,000',
-    premiumHistory: [
-      { date: '02 Aug 2025', amount: '₹11,200', status: 'Paid' },
-      { date: '02 Aug 2024', amount: '₹11,200', status: 'Paid' },
-      { date: '02 Aug 2023', amount: '₹11,200', status: 'Paid' },
-      { date: '02 Aug 2022', amount: '₹11,200', status: 'Paid' },
-    ],
-  },
-  {
-    id: 'P003', name: 'Jeevan Labh', planNo: '936', type: 'Endowment',
-    sumAssured: '₹10,00,000', premium: '₹4,850', premiumFreq: 'Yearly',
-    startDate: '20 Sep 2019', maturityDate: '20 Sep 2035',
-    nextDue: '20 Sep 2026', paidPct: 85, color: '#22c55e',
-    icon: PiggyBank, status: 'Active', policyTerm: '16 years',
-    premiumTerm: '10 years', nominee: 'Arjun (Son)',
-    totalPremiumPaid: '₹33,950', bonusAccrued: '₹62,000',
-    premiumHistory: [
-      { date: '20 Sep 2025', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2024', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2023', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2022', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2021', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2020', amount: '₹4,850', status: 'Paid' },
-      { date: '20 Sep 2019', amount: '₹4,850', status: 'Paid' },
-    ],
-  },
-];
+import { useUserData } from '@/hooks/useUserData';
 
 function RingProgress({ pct, size = 64, stroke = 5, color = '#FFB300' }: any) {
   const r = (size - stroke * 2) / 2;
@@ -81,44 +30,56 @@ function RingProgress({ pct, size = 64, stroke = 5, color = '#FFB300' }: any) {
 
 export default function PoliciesPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isDark } = useTheme();
-  const [selected, setSelected] = useState<typeof MY_POLICIES_DATA[0] | null>(null);
+  const { policies, addPolicy, recordPayment } = useUserData();
+  const T = useThemeColors();
+  const { bg, surface, surface2, border, text, text2, hint, headerBg, shadow, isDark } = T;
+  const [selected, setSelected] = useState<any | null>(null);
   const [detailTab, setDetailTab] = useState<'overview' | 'history' | 'documents'>('overview');
   const [paySuccess, setPaySuccess] = useState(false);
+  const [showAddPolicy, setShowAddPolicy] = useState(false);
+  const [newPolicyData, setNewPolicyData] = useState({ name: '', type: 'Endowment', sum: '', premium: '' });
 
-  const bg       = isDark ? '#0F1117'  : '#FAFAFA';
-  const surface  = isDark ? '#161B27'  : '#FFFFFF';
-  const surface2 = isDark ? '#1E2436'  : '#F8F9FA';
-  const border   = isDark ? 'rgba(255,255,255,0.07)' : '#DADCE0';
-  const text     = isDark ? '#E2E8F0'  : '#202124';
-  const text2    = isDark ? '#94A3B8'  : '#5F6368';
-  const hint     = isDark ? '#64748B'  : '#9AA0A6';
-  const headerBg = isDark ? 'rgba(22,27,39,0.95)' : 'rgba(255,255,255,0.95)';
-  const modalBg  = isDark ? 'rgba(0,0,0,0.7)'     : 'rgba(0,0,0,0.4)';
+  const handleAddPolicy = async () => {
+    if (!newPolicyData.name || !newPolicyData.sum) return;
+    await addPolicy({
+      name: newPolicyData.name,
+      type: newPolicyData.type,
+      sum: `₹${newPolicyData.sum}`,
+      premium: `₹${newPolicyData.premium || '0'}/yr`,
+      nextDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      paidPct: Math.floor(Math.random() * 50) + 10,
+      status: 'Active'
+    });
+    setShowAddPolicy(false);
+  };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setPaySuccess(true);
+    if (selected) await recordPayment(selected.id, selected.premium);
     setTimeout(() => setPaySuccess(false), 3000);
   };
 
   return (
     <DashboardShell>
-      <div style={{ minHeight:'100vh', background:bg, color:text, fontFamily:'Inter, sans-serif', transition:'background 0.3s, color 0.3s' }}>
+      <div suppressHydrationWarning style={{ minHeight:'100vh', background:bg, color:text, fontFamily:'Inter, sans-serif', transition:'background 0.3s, color 0.3s' }}>
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.fade-in{animation:fadeIn 0.3s ease;}`}</style>
 
-      {/* Header */}
-      <header style={{ height:64,display:'flex',alignItems:'center',gap:14,padding:'0 20px',borderBottom:`1px solid ${border}`,background:headerBg,backdropFilter:'blur(12px)',position:'sticky',top:0,zIndex:30,transition:'background 0.3s,border-color 0.3s' }}>
-        <button onClick={() => router.back()} style={{ width:36,height:36,borderRadius:'50%',border:`1px solid ${border}`,background:surface2,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:text,flexShrink:0 }}>
-          <ArrowLeft size={16}/>
-        </button>
-        <div>
-          <h1 style={{ fontSize:17,fontWeight:800,lineHeight:1,color:text }}>My Policies</h1>
-          <p style={{ fontSize:11,color:hint,marginTop:2 }}>{MY_POLICIES_DATA.length} active policies</p>
+      <PageHeader>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => router.back()} style={{ width:34,height:34,borderRadius:'50%',border:`1px solid ${border}`,background:surface2,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:text,flexShrink:0 }}>
+            <ArrowLeft size={15}/>
+          </button>
+          <div>
+            <h1 style={{ fontSize:17,fontWeight:800,lineHeight:1,color:text }}>My Policies</h1>
+            <p style={{ fontSize:11,color:hint,marginTop:2 }}>{policies.length} active policies</p>
+          </div>
         </div>
-      </header>
+        <button onClick={() => setShowAddPolicy(true)} style={{ background:'linear-gradient(135deg,#C8102E,#a00d24)',color:'white',border:'none',borderRadius:20,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer',boxShadow:'0 2px 8px rgba(200,16,46,0.35)' }}>
+          + Add
+        </button>
+      </PageHeader>
 
-      <div style={{ maxWidth:760,margin:'0 auto',padding:'20px 16px 60px' }}>
+      <div style={{ maxWidth:760,margin:'0 auto',padding:'24px 16px 60px' }}>
         {/* Summary Banner */}
         <div style={{ background:'linear-gradient(135deg,#C8102E 0%,#a00d24 100%)',borderRadius:14,padding:'20px 24px',marginBottom:20,display:'flex',gap:24,flexWrap:'wrap' }}>
           {[
@@ -133,63 +94,74 @@ export default function PoliciesPage() {
           ))}
         </div>
 
-        {/* Policy Cards */}
-        <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-          {MY_POLICIES_DATA.map(policy => (
-            <div key={policy.id} onClick={() => { setSelected(policy); setDetailTab('overview'); }}
-              style={{ background:surface,border:`1px solid ${border}`,borderRadius:14,padding:'18px',cursor:'pointer',transition:'all 0.2s ease,background 0.3s',boxShadow:isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(60,64,67,0.08)' }}>
+        {/* Policy Cards or Empty State */}
+        {policies.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: surface, borderRadius: 16, border: `1px solid ${border}` }}>
+            <div style={{ width: 64, height: 64, background: 'rgba(255,179,0,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <Shield size={32} color="#FFB300" />
+            </div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: text }}>No policies found</h2>
+            <p style={{ fontSize: 13, color: text2, maxWidth: 300, margin: '0 auto 24px', lineHeight: 1.6 }}>
+              It looks like you haven't linked any LIC policies yet. Add your first policy to track your progress!
+            </p>
+            <button onClick={() => setShowAddPolicy(true)} className="lic-btn" style={{ padding: '12px 24px', borderRadius: 30 }}>
+              Add Your First Policy
+            </button>
+          </div>
+        ) : (
+          <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
+            {policies.map(policy => (
+              <div key={policy.id} onClick={() => { setSelected(policy); setDetailTab('overview'); }}
+                style={{ background:surface,border:`1px solid ${border}`,borderRadius:14,padding:'18px',cursor:'pointer',transition:'all 0.2s ease,background 0.3s',boxShadow:shadow }}>
 
-              <div style={{ display:'flex',alignItems:'flex-start',gap:14 }}>
-                {/* Ring */}
-                <div style={{ position:'relative',flexShrink:0 }}>
-                  <RingProgress pct={policy.paidPct} size={60} stroke={5} color={policy.color}/>
-                  <div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:policy.color }}>{policy.paidPct}%</div>
-                </div>
-
-                {/* Info */}
-                <div style={{ flex:1,minWidth:0 }}>
-                  <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4 }}>
-                    <span style={{ fontSize:15,fontWeight:800 }}>{policy.name}</span>
-                    <span style={{ fontSize:10,background:'rgba(34,197,94,0.1)',color:'#16a34a',padding:'2px 8px',borderRadius:20,fontWeight:700 }}>{policy.status}</span>
+                <div style={{ display:'flex',alignItems:'flex-start',gap:14 }}>
+                  {/* Ring */}
+                  <div style={{ position:'relative',flexShrink:0 }}>
+                    <RingProgress pct={policy.paidPct || 10} size={60} stroke={5} color="#C8102E"/>
+                    <div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color: '#C8102E' }}>{policy.paidPct || 10}%</div>
                   </div>
-                  <div style={{ fontSize:11,color:text2,marginBottom:8 }}>Plan {policy.planNo} · {policy.type} · {policy.id}</div>
-                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:6 }}>
-                    {[
-                      { l:'Sum Assured',v:policy.sumAssured,c:text },
-                      { l:'Premium',v:`${policy.premium}/${policy.premiumFreq === 'Yearly' ? 'yr' : 'mo'}`,c:policy.color },
-                      { l:'Nominee',v:policy.nominee,c:text2 },
-                      { l:'Maturity',v:policy.maturityDate,c:text2 },
-                    ].map(d => (
-                      <div key={d.l}>
-                        <div style={{ fontSize:9,color:hint,fontWeight:700,letterSpacing:'0.3px' }}>{d.l.toUpperCase()}</div>
-                        <div style={{ fontSize:11,fontWeight:700,color:d.c,marginTop:1 }}>{d.v}</div>
-                      </div>
-                    ))}
+
+                  {/* Info */}
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4 }}>
+                      <span style={{ fontSize:15,fontWeight:800 }}>{policy.name}</span>
+                      <span style={{ fontSize:10,background:'rgba(34,197,94,0.1)',color:'#16a34a',padding:'2px 8px',borderRadius:20,fontWeight:700 }}>{policy.status}</span>
+                    </div>
+                    <div style={{ fontSize:11,color:text2,marginBottom:8 }}>Plan {policy.id} · {policy.type}</div>
+                    <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:6 }}>
+                      {[
+                        { l:'Sum Assured',v:policy.sum,c:text },
+                        { l:'Premium',v:policy.premium,c: '#C8102E' },
+                        { l:'Nominee',v: 'Not added',c:text2 },
+                      ].map(d => (
+                        <div key={d.l}>
+                          <div style={{ fontSize:9,color:hint,fontWeight:700,letterSpacing:'0.3px' }}>{d.l.toUpperCase()}</div>
+                          <div style={{ fontSize:11,fontWeight:700,color:d.c,marginTop:1 }}>{d.v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right */}
+                  <div style={{ flexShrink:0,textAlign:'right' }}>
+                    <div style={{ fontSize:9,color:hint,marginBottom:3 }}>NEXT DUE</div>
+                    <div style={{ fontSize:12,fontWeight:700,color:'#FFB300' }}>{policy.nextDue}</div>
+                    <ChevronRight size={16} color={hint} style={{ marginTop:10 }}/>
                   </div>
                 </div>
 
-                {/* Right */}
-                <div style={{ flexShrink:0,textAlign:'right' }}>
-                  <div style={{ fontSize:9,color:hint,marginBottom:3 }}>NEXT DUE</div>
-                  <div style={{ fontSize:12,fontWeight:700,color:'#FFB300' }}>{policy.nextDue}</div>
-                  <ChevronRight size={16} color={hint} style={{ marginTop:10 }}/>
-                </div>
-              </div>
-
-              {/* Pay button if due soon */}
-              {policy.id === 'P003' && (
-                <div style={{ marginTop:14,paddingTop:14,borderTop:'1px solid #DADCE0',display:'flex',alignItems:'center',gap:10 }}>
+                <div style={{ marginTop:14,paddingTop:14,borderTop:`1px solid ${border}`,display:'flex',alignItems:'center',gap:10 }}>
                   <AlertCircle size={14} color="#C8102E"/>
-                  <span style={{ fontSize:12,color:'#C8102E',flex:1 }}>Premium due in <strong>12 days</strong></span>
-                  <button onClick={e => { e.stopPropagation(); handlePay(); }}
+                  <span style={{ fontSize:12,color:'#C8102E',flex:1 }}>Premium due soon</span>
+                  <button onClick={e => { e.stopPropagation(); setSelected(policy); handlePay(); }}
                     style={{ padding:'7px 16px',borderRadius:20,border:'none',background:'linear-gradient(90deg,#FFB300,#C8102E)',color:'#202124',fontSize:12,fontWeight:700,cursor:'pointer' }}>
-                    Pay ₹4,850
+                    Pay {policy.premium.split('/')[0]}
                   </button>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Success toast */}
         {paySuccess && (
@@ -271,14 +243,10 @@ export default function PoliciesPage() {
 
                   <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16 }}>
                     {[
-                      { l:'Sum Assured',v:selected.sumAssured },
-                      { l:'Premium Amount',v:`${selected.premium}/${selected.premiumFreq.charAt(0)}`},
-                      { l:'Policy Term',v:selected.policyTerm },
-                      { l:'Premium Term',v:selected.premiumTerm },
-                      { l:'Start Date',v:selected.startDate },
-                      { l:'Maturity Date',v:selected.maturityDate },
+                      { l:'Sum Assured',v:selected.sum },
+                      { l:'Premium Amount',v:selected.premium },
+                      { l:'Start Date',v:'Added recently' },
                       { l:'Next Due Date',v:selected.nextDue },
-                      { l:'Nominee',v:selected.nominee },
                     ].map(d => (
                       <div key={d.l} style={{ background:surface2,borderRadius:10,padding:'12px',border:`1px solid ${border}` }}>
                         <div style={{ fontSize:9,color:'#5f6368',fontWeight:700,letterSpacing:'0.5px',marginBottom:4 }}>{d.l.toUpperCase()}</div>
@@ -301,7 +269,7 @@ export default function PoliciesPage() {
               {detailTab === 'history' && (
                 <div>
                   <p style={{ fontSize:12,color:'#5f6368',marginBottom:14 }}>Premium payment history for {selected.name}</p>
-                  {selected.premiumHistory.map((h, i) => (
+                  {selected.premiumHistory.map((h: any, i: number) => (
                     <div key={i} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid #DADCE0' }}>
                       <div style={{ width:32,height:32,borderRadius:'50%',background:'rgba(34,197,94,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
                         <CheckCircle size={14} color="#4ade80"/>
@@ -342,6 +310,38 @@ export default function PoliciesPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Add Policy Modal ─── */}
+      {showAddPolicy && (
+        <div onClick={() => setShowAddPolicy(false)}
+          style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
+          <div onClick={e => e.stopPropagation()} className="fade-in"
+            style={{ width:'100%',maxWidth:400,background:surface,borderRadius:16,padding:24,boxShadow:'0 20px 40px rgba(0,0,0,0.2)',border:`1px solid ${border}` }}>
+            
+            <h2 style={{ fontSize:20,fontWeight:800,marginBottom:20,color:text }}>Add New Policy</h2>
+            
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:'block',fontSize:12,fontWeight:700,marginBottom:6,color:text2 }}>Policy Name</label>
+              <input type="text" placeholder="e.g. Jeevan Anand" style={{ width:'100%',padding:'12px 14px',borderRadius:8,border:`1px solid ${border}`,background:surface2,color:text }} value={newPolicyData.name} onChange={e => setNewPolicyData({...newPolicyData, name: e.target.value})} />
+            </div>
+
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:'block',fontSize:12,fontWeight:700,marginBottom:6,color:text2 }}>Sum Assured (₹)</label>
+              <input type="number" placeholder="e.g. 1000000" style={{ width:'100%',padding:'12px 14px',borderRadius:8,border:`1px solid ${border}`,background:surface2,color:text }} value={newPolicyData.sum} onChange={e => setNewPolicyData({...newPolicyData, sum: e.target.value})} />
+            </div>
+
+            <div style={{ marginBottom:24 }}>
+              <label style={{ display:'block',fontSize:12,fontWeight:700,marginBottom:6,color:text2 }}>Premium Amount (₹)</label>
+              <input type="number" placeholder="e.g. 5000" style={{ width:'100%',padding:'12px 14px',borderRadius:8,border:`1px solid ${border}`,background:surface2,color:text }} value={newPolicyData.premium} onChange={e => setNewPolicyData({...newPolicyData, premium: e.target.value})} />
+            </div>
+
+            <div style={{ display:'flex',gap:12 }}>
+              <button onClick={() => setShowAddPolicy(false)} style={{ flex:1,padding:14,borderRadius:30,border:`1px solid ${border}`,background:'transparent',color:text,fontSize:13,fontWeight:700,cursor:'pointer' }}>Cancel</button>
+              <button onClick={handleAddPolicy} className="lic-btn" style={{ flex:1,padding:14,borderRadius:30,fontSize:13,cursor:'pointer' }}>Add Policy</button>
             </div>
           </div>
         </div>

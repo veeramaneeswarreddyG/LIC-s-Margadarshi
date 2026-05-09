@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, ExternalLink, Clock, Tag, RefreshCw, Newspaper, AlertCircle } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import DashboardShell from '@/components/DashboardShell';
+import PageHeader from '@/components/PageHeader';
 
 const CAT_COLORS: Record<string, string> = {
   'Product Launch': '#FFB300',
@@ -85,25 +86,15 @@ export default function NewsPage() {
           ::-webkit-scrollbar-thumb{background:rgba(200,16,46,0.3);border-radius:4px;}
         `}</style>
 
-        {/* ── Sticky Header ── */}
-        <header style={{
-          height: 64, display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', padding: '0 20px',
-          borderBottom: `1px solid ${border}`,
-          background: headerBg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          position: 'sticky', top: 0, zIndex: 30,
-          transition: 'background 0.3s, border-color 0.3s',
-        }}>
+        <PageHeader>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button onClick={() => router.back()} style={{
-              width: 36, height: 36, borderRadius: '50%',
+              width: 34, height: 34, borderRadius: '50%',
               border: `1px solid ${border}`, background: iconBtn,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: iconClr, transition: 'all 0.2s',
+              cursor: 'pointer', color: iconClr,
             }}>
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
             </button>
             <div>
               <h1 style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: text }}>LIC News &amp; Updates</h1>
@@ -113,14 +104,14 @@ export default function NewsPage() {
             </div>
           </div>
           <button onClick={fetchNews} style={{
-            width: 36, height: 36, borderRadius: '50%',
+            width: 34, height: 34, borderRadius: '50%',
             border: `1px solid ${border}`, background: iconBtn,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: iconClr, transition: 'all 0.2s',
+            cursor: 'pointer', color: iconClr,
           }}>
-            <RefreshCw size={15} className={loading ? 'spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
           </button>
-        </header>
+        </PageHeader>
 
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px 60px' }}>
 

@@ -338,7 +338,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font);
   transition: all 0.2s ease;
   background: transparent;
-  color: #5f6368;
+  color: var(--text-secondary);
 }
 .lic-tab.active {
   background: var(--lic-red);
@@ -377,7 +377,7 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
   font-size: 12px;
   font-weight: 500;
-  color: #5f6368;
+  color: var(--text-secondary);
   margin-bottom: 7px;
   letter-spacing: 0.2px;
   font-family: var(--font);
@@ -389,7 +389,7 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   left: 14px; top: 50%;
   transform: translateY(-50%);
-  color: #9aa0a6;
+  color: var(--text-hint);
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -400,7 +400,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-50%);
   cursor: pointer;
   background: none; border: none;
-  color: #5f6368;
+  color: var(--text-hint);
   display: flex; align-items: center;
   padding: 4px;
 }
@@ -430,7 +430,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font);
   border: 1px solid var(--border);
   background: var(--bg);
-  color: #5f6368;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -541,3 +541,49 @@ textarea::placeholder {
 html { background: var(--bg); }
 
 
+/* ─────────────────────────────────────────────
+   INLINE FIELD ERRORS  (Reference Image 1)
+─────────────────────────────────────────────── */
+
+/* Input gets a red border + subtle glow when errored */
+.lic-input.field-error,
+input.field-error,
+textarea.field-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important;
+  animation: shake 0.35s cubic-bezier(0.36,0.07,0.19,0.97);
+}
+
+/* Subtle shake on error */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* Inline error text below field */
+.field-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 6px;
+  padding: 0 2px;
+  animation: errorSlideIn 0.25s ease;
+  line-height: 1.4;
+}
+
+.field-error-msg::before {
+  content: '⚠';
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+@keyframes errorSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

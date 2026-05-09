@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "policies": "My Policies",
+    "plans": "Explore Plans",
+    "news": "LIC News",
+    "profile": "Profile",
+    "settings": "Settings",
+    "support": "Support",
+    "logout": "Sign Out"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "totalCoverage": "Total Coverage",
+    "premiumDue": "Premium Due",
+    "activePolicies": "Active Policies",
+    "nextDue": "Next Due",
+    "payNow": "Pay Now",
+    "viewAll": "View All",
+    "recentActivity": "Recent Activity"
+  },
+  "policies": {
+    "title": "My Policies",
+    "active": "Active",
+    "lapsed": "Lapsed",
+    "matured": "Matured",
+    "sumAssured": "Sum Assured",
+    "premium": "Premium",
+    "nextDue": "Next Due",
+    "maturityDate": "Maturity Date",
+    "nominee": "Nominee",
+    "policyTerm": "Policy Term",
+    "payPremium": "Pay Premium",
+    "raiseClaim": "Raise a Claim",
+    "overview": "Overview",
+    "history": "History",
+    "documents": "Documents"
+  },
+  "plans": {
+    "title": "Explore LIC Plans",
+    "search": "Search by plan name or number…",
+    "all": "All Plans",
+    "endowment": "Endowment",
+    "term": "Term",
+    "ulip": "ULIP",
+    "pension": "Pension",
+    "children": "Children",
+    "health": "Health",
+    "viewDetails": "View Details",
+    "getPlan": "Get This Plan",
+    "entryAge": "Entry Age",
+    "policyTerm": "Policy Term",
+    "minSA": "Min SA",
+    "startingFrom": "Starting From"
+  },
+  "vaani": {
+    "title": "LIC's Vaani",
+    "subtitle": "AI Assistant",
+    "placeholder": "Ask Vaani anything about LIC...",
+    "listening": "Listening… speak now",
+    "poweredBy": "Powered by Gemini AI",
+    "disclaimer": "Not financial advice",
+    "suggestions": {
+      "premium": "Calculate premium",
+      "suggest": "Suggest a plan",
+      "compare": "Compare plans",
+      "claims": "Claims process"
+    }
+  },
+  "auth": {
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "phone": "Phone Number",
+    "otp": "Enter OTP",
+    "sendOtp": "Send OTP",
+    "verify": "Verify & Login",
+    "resend": "Resend OTP"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done"
+  }
+}

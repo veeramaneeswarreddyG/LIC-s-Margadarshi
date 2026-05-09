@@ -1,48 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processVaaniQuery, initializeVaani } from '@/lib/vaani';
-import { verifyJWT } from '@/lib/auth';
 
 /**
  * POST /api/vaani/chat
- * Send message to LIC's Vaani assistant
+ * Send message to LIC's Vaani (Gemini-powered)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Missing or invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = await verifyJWT(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { message, conversationId } = body;
+    const { message, conversationId, userId, userData } = body;
 
-    if (!message || !conversationId) {
+    if (!message) {
       return NextResponse.json(
-        { error: 'Missing message or conversationId' },
+        { error: 'Missing message' },
         { status: 400 }
       );
     }
 
-    // Process with Vaani
+    const cId = conversationId || `vaani-${userId || 'guest'}-${Date.now()}`;
+
     const response = await processVaaniQuery(
-      decoded.uid,
+      userId || 'guest',
       message,
-      conversationId
+      cId,
+      userData
     );
 
     return NextResponse.json({
       success: true,
       data: response,
+      conversationId: cId,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -64,28 +51,16 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Missing or invalid token' },
-        { status: 401 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId') || 'guest';
+    const userName = searchParams.get('userName') || 'Valued Customer';
 
-    const token = authHeader.substring(7);
-    const decoded = await verifyJWT(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Initialize Vaani
-    const context = await initializeVaani(decoded.uid);
+    const context = initializeVaani(userId, userName);
 
     return NextResponse.json({
       success: true,
       data: context,
-      message: 'LIC\'s Vaani initialized successfully! 🌟',
+      message: "LIC's Vaani initialized successfully! 🌟",
     });
   } catch (error) {
     console.error('Vaani init error:', error);

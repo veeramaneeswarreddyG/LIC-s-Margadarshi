@@ -4,6 +4,7 @@ import I18nProvider from '@/components/I18nProvider'
 import ClientAuthProvider from '@/components/AuthProvider'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { SidebarProvider } from '@/context/SidebarContext'
+import VaaniAssistant from '@/components/VaaniAssistant'
 
 export const metadata: Metadata = {
   title: 'LIC Margadarshi – Your Policy Advisor',
@@ -31,6 +32,7 @@ export default function RootLayout({
           <SidebarProvider>
             <ClientAuthProvider>
               {children}
+              <VaaniAssistant />
             </ClientAuthProvider>
           </SidebarProvider>
         </ThemeProvider>

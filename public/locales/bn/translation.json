@@ -1,0 +1,8 @@
+{
+  "nav": { "dashboard": "ড্যাশবোর্ড", "policies": "আমার পলিসি", "plans": "প্ল্যান দেখুন", "news": "LIC সংবাদ", "profile": "প্রোফাইল", "settings": "সেটিংস", "support": "সহায়তা", "logout": "সাইন আউট" },
+  "dashboard": { "welcome": "আবার স্বাগতম", "totalCoverage": "মোট কভারেজ", "premiumDue": "প্রিমিয়াম বকেয়া", "activePolicies": "সক্রিয় পলিসি", "nextDue": "পরবর্তী তারিখ", "payNow": "এখনই পরিশোধ করুন", "viewAll": "সব দেখুন" },
+  "policies": { "title": "আমার পলিসি", "active": "সক্রিয়", "sumAssured": "বীমার পরিমাণ", "premium": "প্রিমিয়াম", "nextDue": "পরবর্তী তারিখ", "maturityDate": "মেয়াদ পূর্তির তারিখ", "nominee": "নমিনি", "payPremium": "প্রিমিয়াম দিন", "raiseClaim": "দাবি করুন", "overview": "সংক্ষিপ্ত বিবরণ", "history": "ইতিহাস", "documents": "নথিপত্র" },
+  "vaani": { "title": "LIC-এর বাণী", "subtitle": "AI সহকারী", "placeholder": "LIC সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন...", "listening": "শুনছি… বলুন", "poweredBy": "Gemini AI দ্বারা পরিচালিত" },
+  "auth": { "login": "সাইন ইন", "logout": "সাইন আউট", "phone": "ফোন নম্বর", "otp": "OTP লিখুন", "sendOtp": "OTP পাঠান", "verify": "যাচাই করুন" },
+  "common": { "loading": "লোড হচ্ছে…", "error": "কিছু একটা ভুল হয়েছে", "retry": "আবার চেষ্টা করুন", "close": "বন্ধ করুন", "save": "সংরক্ষণ করুন", "cancel": "বাতিল করুন", "back": "পিছনে", "done": "সম্পন্ন" }
+}

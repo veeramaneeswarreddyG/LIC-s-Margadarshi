@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, Search, FileText, Users, Calendar,
+  LayoutDashboard, Search, FileText, Users, Calendar, Calculator,
   CreditCard, Bell, LogOut, User, TrendingUp, Shield,
   ChevronRight, AlertCircle, CheckCircle, Clock, Star,
   ArrowUpRight, Wallet, BarChart3, Settings, Menu, X,
@@ -11,6 +11,7 @@ import {
   Moon, Sun, Home
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserData } from '@/hooks/useUserData';
 import { useToast } from '@/hooks/useToast';
 import { useTheme } from '@/context/ThemeContext';
 import { useSidebar } from '@/context/SidebarContext';
@@ -55,40 +56,19 @@ function RingProgress({ pct, size = 60, stroke = 5, color = '#FFB300' }: { pct: 
 }
 
 /* ─── Data ───────────────────────────────────────────────── */
-const POLICIES = [
-  { id: 'P001', name: 'Jeevan Anand', type: 'Endowment', sum: '₹15,00,000', premium: '₹6,420/yr', nextDue: '15 Jun 2026', paidPct: 68, color: '#FFB300', icon: Shield, status: 'Active' },
-  { id: 'P002', name: 'Jeevan Umang', type: 'Whole Life', sum: '₹25,00,000', premium: '₹11,200/yr', nextDue: '02 Aug 2026', paidPct: 42, color: '#C8102E', icon: Heart, status: 'Active' },
-  { id: 'P003', name: 'Jeevan Labh', type: 'Money Back', sum: '₹10,00,000', premium: '₹4,850/yr', nextDue: '20 Sep 2026', paidPct: 85, color: '#22c55e', icon: PiggyBank, status: 'Active' },
-];
-
 const QUICK_ACTIONS = [
   { label: 'Pay Premium', icon: CreditCard, gradient: 'linear-gradient(135deg,#FFB300,#ff8800)', route: '/policies' },
+  { label: 'Calculator', icon: Calculator, gradient: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', route: '/calculator' },
   { label: 'New Policy', icon: FileText, gradient: 'linear-gradient(135deg,#C8102E,#ff3366)', route: '/plans' },
   { label: 'Claim Status', icon: CheckCircle, gradient: 'linear-gradient(135deg,#22c55e,#16a34a)', route: '/policies' },
   { label: 'LIC News', icon: Newspaper, gradient: 'linear-gradient(135deg,#3b82f6,#6366f1)', route: '/news' },
 ];
 
-const ACTIVITIES = [
-  { icon: CreditCard, text: 'Premium paid for Jeevan Anand', sub: '₹6,420 · Today, 10:32 AM', dot: '#FFB300' },
-  { icon: FileText, text: 'Policy document downloaded', sub: 'Jeevan Umang · Yesterday', dot: '#C8102E' },
-  { icon: AlertCircle, text: 'Premium due in 12 days', sub: 'Jeevan Labh · ₹4,850', dot: '#f59e0b' },
-  { icon: CheckCircle, text: 'KYC verification completed', sub: '3 days ago', dot: '#22c55e' },
-  { icon: Bell, text: 'Bonus declared on policy', sub: 'Jeevan Anand · ₹1,200', dot: '#FFB300' },
-];
-
 const PLANS = [
-  { label: 'Term Plans', icon: Umbrella, desc: 'Pure protection, low premium', tag: 'Popular' },
-  { label: 'Endowment', icon: Shield, desc: 'Savings + life cover', tag: '' },
-  { label: 'Money Back', icon: PiggyBank, desc: 'Periodic cash returns', tag: 'Recommended' },
-  { label: 'Pension Plans', icon: Briefcase, desc: 'Retirement security', tag: '' },
-];
-
-const NAV = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, route: '' },
-  { id: 'policies', label: 'My Policies', icon: FileText, route: '/policies' },
-  { id: 'plans', label: 'Explore Plans', icon: Search, route: '/plans' },
-  { id: 'payments', label: 'Payments', icon: Wallet, route: '/policies' },
-  { id: 'news', label: 'LIC News', icon: Newspaper, route: '/news' },
+  { label: 'Term Plans',    icon: Umbrella,  desc: 'Pure protection, low premium',  tag: 'Popular',     category: 'term'      },
+  { label: 'Endowment',     icon: Shield,    desc: 'Savings + life cover',           tag: '',            category: 'endowment' },
+  { label: 'Money Back',    icon: PiggyBank, desc: 'Periodic cash returns',          tag: 'Recommended', category: 'moneyback' },
+  { label: 'Pension Plans', icon: Briefcase, desc: 'Retirement security',            tag: '',            category: 'pension'   },
 ];
 
 /* ─── Main Component ─────────────────────────────────────── */
@@ -104,13 +84,18 @@ export default function DashboardPage() {
 
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
+  const { progress, policies, activities } = useUserData();
   const { showToast, ToastContainer } = useToast();
 
+  // Dynamic calculations based on user data
+  const totalSumRaw = policies.reduce((acc, p) => acc + parseInt(p.sum.replace(/\D/g, '') || '0'), 0);
+  const totalPremiumRaw = policies.reduce((acc, p) => acc + parseInt(p.premium.replace(/\D/g, '') || '0'), 0);
+  
   // Animated counters
-  const c1 = useCounter(3);
-  const c2 = useCounter(152600);
-  const c3 = useCounter(22460);
-  const c4 = useCounter(12);
+  const c1 = useCounter(policies.length);
+  const c2 = useCounter(totalSumRaw);
+  const c3 = useCounter(totalPremiumRaw);
+  const c4 = useCounter(policies.length > 0 ? 12 : 0); // Fake days until we implement real date parsing
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -431,37 +416,28 @@ export default function DashboardPage() {
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           padding: '0 8px',
                         }}>
-                          {ACTIVITIES.length}
+                          {activities.length}
                         </span>
                       </div>
 
                       {/* Body */}
-                      {ACTIVITIES.length === 0 ? (
+                      {activities.length === 0 ? (
                         <div style={{ padding: '40px 20px 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
                           <div className="notif-illus-box" style={{ width: 120, height: 120, borderRadius: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              {/* Bell body */}
                               <ellipse cx="36" cy="58" rx="8" ry="4" fill={isDark ? '#334155' : '#D1D5DB'} />
                               <path d="M14 50 C14 50 16 30 36 28 C56 30 58 50 58 50 H14Z" fill={isDark ? '#475569' : '#D1D5DB'} />
                               <rect x="30" y="50" width="12" height="6" rx="3" fill={isDark ? '#64748B' : '#9CA3AF'} />
-                              {/* Bell clapper */}
                               <circle cx="36" cy="26" r="4" fill={isDark ? '#475569' : '#D1D5DB'} />
-                              {/* Warning triangle */}
-                              <path d="M44 18 L56 38 H32 Z" fill={isDark ? '#374151' : '#E5E7EB'} stroke={isDark ? '#4B5563' : '#D1D5DB'} strokeWidth="1.5" />
-                              <text x="44" y="34" textAnchor="middle" fontSize="11" fontWeight="700" fill={isDark ? '#6B7280' : '#9CA3AF'}>✕</text>
-                              {/* Exclamation marks */}
-                              <text x="22" y="46" fontSize="14" fontWeight="800" fill={isDark ? '#374151' : '#D1D5DB'}>!</text>
-                              <text x="17" y="40" fontSize="10" fontWeight="800" fill={isDark ? '#374151' : '#E5E7EB'}>!</text>
                             </svg>
                           </div>
-                          <p className="notif-empty-text" style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>No Notification!</p>
+                          <p className="notif-empty-text" style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>No new notifications!</p>
                         </div>
                       ) : (
-                        /* Notification items */
                         <div style={{ maxHeight: 340, overflowY: 'auto', padding: '8px 0' }}>
-                          {ACTIVITIES.slice(0, 6).map((a, i) => (
+                          {activities.slice(0, 6).map((a, i) => (
                             <div key={i} className="notif-item" style={{ display: 'flex', gap: 12, padding: '12px 20px', cursor: 'pointer', transition: 'background 0.15s' }}>
-                              <div style={{ width: 9, height: 9, borderRadius: '50%', background: a.dot, flexShrink: 0, marginTop: 4 }} />
+                              <div style={{ width: 9, height: 9, borderRadius: '50%', background: a.type === 'success' ? '#22c55e' : '#3b82f6', flexShrink: 0, marginTop: 4 }} />
                               <div>
                                 <div className="notif-item-title" style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{a.text}</div>
                                 <div className="notif-item-sub" style={{ fontSize: 11, marginTop: 3 }}>{a.sub}</div>
@@ -522,9 +498,33 @@ export default function DashboardPage() {
             <p style={{ fontSize: 12, color: '#FFB300', fontWeight: 600, marginBottom: 6 }}>{greeting} 👋</p>
             <h1 className="greeting-h1" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.3px', marginBottom: 8, color: 'white' }}>{user.name || 'Welcome back'}!</h1>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', maxWidth: 420 }}>
-              You have <span style={{ color: '#FFB300', fontWeight: 700 }}>3 active policies</span> and your next premium is due in <span style={{ color: 'white', fontWeight: 700 }}>12 days</span>.
+              {policies.length > 0 
+                ? <>You have <span style={{ color: '#FFB300', fontWeight: 700 }}>{policies.length} active policies</span> and your next premium is due in <span style={{ color: 'white', fontWeight: 700 }}>12 days</span>.</>
+                : <>Welcome! Add your first policy or explore new plans to get started with your financial journey.</>
+              }
             </p>
           </div>
+
+          {/* ── Progress Card (Beginner Guided Flow) ── */}
+          {progress && progress.completion_percentage < 100 && (
+            <div style={{ background: 'var(--dash-surface)', border: '1px solid var(--dash-border)', borderRadius: 16, padding: '20px', marginBottom: 28, boxShadow:'0 1px 3px rgba(60,64,67,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--dash-text)' }}>Your Progress</h2>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#C8102E' }}>{progress.completion_percentage}%</span>
+              </div>
+              <div style={{ width: '100%', height: 8, background: isDark ? 'rgba(255,255,255,0.05)' : '#F1F3F4', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{ width: `${progress.completion_percentage}%`, height: '100%', background: 'linear-gradient(90deg, #FFB300, #C8102E)', borderRadius: 4, transition: 'width 1s ease-out' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {!progress.policies_added && (
+                  <button className="lic-btn" style={{ padding: '8px 16px', fontSize: 12, flex: 1 }} onClick={() => router.push('/policies')}>+ Add First Policy</button>
+                )}
+                {!progress.calculations_done && (
+                  <button className="lic-ghost-btn" style={{ padding: '8px 16px', fontSize: 12, flex: 1 }} onClick={() => router.push('/calculator')}>Calculate Premium</button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── KPI Cards ── */}
           <div className="kpi-grid">
@@ -567,46 +567,43 @@ export default function DashboardPage() {
                 <button style={{ fontSize: 13, color: '#C8102E', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }} onClick={() => router.push('/policies')}>View all →</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {POLICIES.map(p => (
-                  <div key={p.id} className="policy-card">
-                    <div className="policy-card-inner">
-                      {/* Ring */}
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <RingProgress pct={p.paidPct} size={52} stroke={4} color={p.color} />
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: p.color }}>
-                          {p.paidPct}%
+                {policies.length === 0 ? (
+                  <div style={{ padding: '32px 20px', textAlign: 'center', background: 'var(--dash-surface)', border: '1px solid var(--dash-border)', borderRadius: 12, borderStyle: 'dashed' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,179,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <Shield size={24} color="#FFB300" />
+                    </div>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dash-text)', marginBottom: 6 }}>No policies yet</h3>
+                    <p style={{ fontSize: 13, color: 'var(--dash-text2)', marginBottom: 16, maxWidth: 220, margin: '0 auto 16px' }}>
+                      Add your existing LIC policies here to track premiums and payouts.
+                    </p>
+                    <button className="lic-btn" style={{ padding: '8px 24px', fontSize: 13 }} onClick={() => router.push('/policies')}>Add Policy</button>
+                  </div>
+                ) : (
+                  policies.map(p => (
+                    <div key={p.id} className="policy-card" onClick={() => router.push('/policies')}>
+                      <div className="policy-card-inner">
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <RingProgress pct={p.paidPct || 10} size={52} stroke={4} color="#C8102E" />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#C8102E' }}>
+                            {p.paidPct || 10}%
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Main info */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800 }}>{p.name}</span>
-                          <span style={{ fontSize: 10, background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontWeight: 700, flexShrink: 0 }}>{p.status}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: '#5f6368', marginBottom: 4 }}>{p.type} · {p.id}</div>
-                        <div className="policy-meta">
-                          <span style={{ fontSize: 12, color: '#5f6368' }}>Sum: <strong style={{ color: '#1e1e1e' }}>{p.sum}</strong></span>
-                          <span style={{ fontSize: 12, color: '#5f6368' }}>Premium: <strong style={{ color: p.color }}>{p.premium}</strong></span>
-                        </div>
-                        {/* Mobile-only due date */}
-                        <div className="policy-meta-mobile-due">
-                          <span style={{ color: '#5f6368', fontSize: 11 }}>Due:</span>
-                          <span style={{ fontWeight: 700, color: '#FFB300', fontSize: 12 }}>{p.nextDue}</span>
-                        </div>
-                      </div>
-
-                      {/* Right: due date (hidden on very small screens) */}
-                      <div className="policy-due" style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 10, color: '#5f6368', marginBottom: 4 }}>Next Due</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#FFB300' }}>{p.nextDue}</div>
-                        <div style={{ marginTop: 8 }}>
-                          <ChevronRight size={16} color="#9aa0a6" />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
+                            <span style={{ fontSize: 14, fontWeight: 800 }}>{p.name}</span>
+                            <span style={{ fontSize: 10, background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontWeight: 700, flexShrink: 0 }}>Active</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--dash-text2)', marginBottom: 4 }}>{p.type || 'LIC Plan'} · {p.id}</div>
+                          <div className="policy-meta">
+                            <span style={{ fontSize: 12, color: 'var(--dash-text2)' }}>Sum: <strong style={{ color: 'var(--dash-text)' }}>{p.sum}</strong></span>
+                            <span style={{ fontSize: 12, color: 'var(--dash-text2)' }}>Premium: <strong style={{ color: '#C8102E' }}>{p.premium}</strong></span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -625,7 +622,7 @@ export default function DashboardPage() {
                       boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
                     }} onClick={() => router.push(a.route)}>
                       <a.icon size={20} color="white" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1e1e1e' }}>{a.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>{a.label}</span>
                     </button>
                   ))}
                 </div>
@@ -633,56 +630,71 @@ export default function DashboardPage() {
 
               {/* News shortcut card */}
               <div onClick={() => router.push('/news')}
-                style={{ background:'#F8F9FA',border:'1px solid rgba(59,130,246,0.2)',borderRadius:16,padding:'18px',cursor:'pointer',transition:'all 0.2s ease' }}>
-                <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:10 }}>
-                  <div style={{ width:32,height:32,borderRadius:10,background:'rgba(59,130,246,0.15)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                style={{ background: 'var(--dash-surface)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:16, padding:'18px', cursor:'pointer', transition:'all 0.2s ease' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                  <div style={{ width:32, height:32, borderRadius:10, background:'rgba(59,130,246,0.15)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <Newspaper size={16} color="#60a5fa"/>
                   </div>
-                  <h2 style={{ fontSize:14,fontWeight:800,margin:0 }}>LIC News</h2>
+                  <h2 style={{ fontSize:14, fontWeight:800, margin:0, color:'var(--dash-text)' }}>LIC News</h2>
                 </div>
-                <p style={{ fontSize:12,color:'#5f6368',lineHeight:1.5,marginBottom:12 }}>Latest plan launches, revival campaigns &amp; official press releases</p>
-                <div style={{ display:'flex',alignItems:'center',gap:4,fontSize:12,color:'#60a5fa',fontWeight:700 }}>Read updates <ArrowUpRight size={12}/></div>
+                <p style={{ fontSize:12, color:'var(--dash-text2)', lineHeight:1.5, marginBottom:12 }}>Latest plan launches, revival campaigns &amp; official press releases</p>
+                <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'#60a5fa', fontWeight:700 }}>Read updates <ArrowUpRight size={12}/></div>
               </div>
-              <div style={{
-                background: 'linear-gradient(135deg,rgba(200,16,46,0.15),rgba(200,16,46,0.05))',
-                border: '1px solid rgba(200,16,46,0.3)', borderRadius: 16, padding: '18px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <AlertCircle size={16} color="#C8102E" />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#ff6b6b' }}>Premium Due Soon</span>
+              {policies.length > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg,rgba(200,16,46,0.15),rgba(200,16,46,0.05))',
+                  border: '1px solid rgba(200,16,46,0.3)', borderRadius: 16, padding: '18px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <AlertCircle size={16} color="#C8102E" />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#ff6b6b' }}>Premium Due Soon</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--dash-text2)', marginBottom: 14, lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--dash-text)' }}>{policies[0].name}</strong> premium of <strong style={{ color: '#FFB300' }}>{policies[0].premium}</strong> is due in <strong style={{ color: '#C8102E' }}>12 days</strong>
+                  </p>
+                  <button className="lic-btn" style={{ padding: '10px', fontSize: 12, borderRadius: 10 }} onClick={() => router.push('/policies')}>Pay Now</button>
                 </div>
-                <p style={{ fontSize: 12, color: '#5f6368', marginBottom: 14, lineHeight: 1.6 }}>
-                  <strong style={{ color: '#1e1e1e' }}>Jeevan Labh</strong> premium of <strong style={{ color: '#FFB300' }}>₹4,850</strong> is due in <strong style={{ color: '#C8102E' }}>12 days</strong>
-                </p>
-                <button className="lic-btn" style={{ padding: '10px', fontSize: 12, borderRadius: 10 }} onClick={() => router.push('/policies')}>Pay Now</button>
-              </div>
+              )}
             </div>
           </div>
 
           {/* ── Explore Plans ── */}
           <div style={{ marginBottom: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 800 }}>Explore LIC Plans</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--dash-text)' }}>Explore LIC Plans</h2>
               <button style={{ fontSize: 12, color: '#FFB300', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => router.push('/plans')}>See all →</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
               {PLANS.map((plan, i) => (
-                <div key={i} style={{
-                  background: 'linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))',
-                  border: '1px solid #dadce0', borderRadius: 16, padding: '20px',
-                  cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative',
-                }}>
+                <div key={i}
+                  onClick={() => router.push(`/plans?category=${plan.category}`)}
+                  style={{
+                    background: 'var(--dash-surface)',
+                    border: '1px solid var(--dash-border)', borderRadius: 16, padding: '20px',
+                    cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative',
+                    boxShadow: '0 1px 3px rgba(60,64,67,0.08)',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(60,64,67,0.15)';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#FFB300';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(60,64,67,0.08)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--dash-border)';
+                  }}
+                >
                   {plan.tag && (
                     <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, fontWeight: 700, background: '#C8102E', color: 'white', padding: '3px 8px', borderRadius: 20 }}>{plan.tag}</span>
                   )}
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,179,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                     <plan.icon size={20} color="#FFB300" />
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>{plan.label}</div>
-                  <div style={{ fontSize: 11, color: '#5f6368', lineHeight: 1.5 }}>{plan.desc}</div>
-                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#FFB300', fontWeight: 600 }}
-                    onClick={() => router.push('/plans')}>
-                    Learn more <ArrowUpRight size={12} />
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: 'var(--dash-text)' }}>{plan.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--dash-text2)', lineHeight: 1.5 }}>{plan.desc}</div>
+                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#FFB300', fontWeight: 600 }}>
+                    View plans <ArrowUpRight size={12} />
                   </div>
                 </div>
               ))}
@@ -692,24 +704,27 @@ export default function DashboardPage() {
           {/* ── Activity Timeline ── */}
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Recent Activity</h2>
-            <div style={{ background: 'var(--dash-surface)', border: '1px solid var(--dash-border)', borderRadius: 12, padding: '8px 0', overflow: 'hidden', boxShadow:'0 1px 2px rgba(60,64,67,0.08)', transition: 'background 0.3s' }}>
-              {ACTIVITIES.map((a, i) => (
+            <div style={{ background: 'var(--dash-surface)', border: '1px solid var(--dash-border)', borderRadius: 12, padding: '8px 0', overflow: 'hidden', boxShadow:'0 1px 2px rgba(60,64,67,0.08)' }}>
+              {activities.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--dash-text2)', fontSize: 13 }}>
+                  No activity recorded yet.
+                </div>
+              ) : activities.map((a, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px',
-                  borderBottom: i < ACTIVITIES.length - 1 ? '1px solid #F1F3F4' : 'none',
-                  transition: 'background 0.2s', cursor: 'default',
+                  borderBottom: i < activities.length - 1 ? `1px solid var(--dash-border)` : 'none',
                 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                    background: `${a.dot}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: a.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <a.icon size={15} color={a.dot} />
+                    <FileText size={15} color={a.type === 'success' ? '#22c55e' : '#3b82f6'} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{a.text}</div>
-                    <div style={{ fontSize: 11, color: '#5f6368', marginTop: 2 }}>{a.sub}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dash-text)' }}>{a.text}</div>
+                    <div style={{ fontSize: 11, color: 'var(--dash-text2)', marginTop: 2 }}>{a.sub}</div>
                   </div>
-                  <ChevronRight size={14} color="#9aa0a6" />
                 </div>
               ))}
             </div>

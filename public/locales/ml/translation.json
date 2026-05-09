@@ -1,0 +1,8 @@
+{
+  "nav": { "dashboard": "ഡാഷ്‌ബോർഡ്", "policies": "എന്റെ പോളിസികൾ", "plans": "പ്ലാനുകൾ കാണുക", "news": "LIC വാർത്തകൾ", "profile": "പ്രൊഫൈൽ", "settings": "ക്രമീകരണങ്ങൾ", "support": "സഹായം", "logout": "സൈൻ ഔട്ട്" },
+  "dashboard": { "welcome": "തിരിച്ചു സ്വാഗതം", "totalCoverage": "മൊത്തം കവറേജ്", "premiumDue": "പ്രീമിയം കുടിശ്ശിക", "activePolicies": "സജീവ പോളിസികൾ", "nextDue": "അടുത്ത തീയതി", "payNow": "ഇപ്പോൾ അടയ്ക്കുക", "viewAll": "എല്ലാം കാണുക" },
+  "policies": { "title": "എന്റെ പോളിസികൾ", "active": "സജീവം", "sumAssured": "ഇൻഷുറൻസ് തുക", "premium": "പ്രീമിയം", "nextDue": "അടുത്ത തീയതി", "maturityDate": "മെച്യൂരിറ്റി തീയതി", "nominee": "നോമിനി", "payPremium": "പ്രീമിയം അടയ്ക്കുക", "raiseClaim": "ക്ലെയിം ചെയ്യുക", "overview": "അവലോകനം", "history": "ചരിത്രം", "documents": "രേഖകൾ" },
+  "vaani": { "title": "LIC വാണി", "subtitle": "AI അസിസ്റ്റന്റ്", "placeholder": "LIC-നെ കുറിച്ച് എന്തും ചോദിക്കുക...", "listening": "കേൾക്കുന്നു… സംസാരിക്കൂ", "poweredBy": "Gemini AI ഉപയോഗിച്ച്" },
+  "auth": { "login": "സൈൻ ഇൻ", "logout": "സൈൻ ഔട്ട്", "phone": "ഫോൺ നമ്പർ", "otp": "OTP നൽകുക", "sendOtp": "OTP അയക്കുക", "verify": "പരിശോധിക്കുക" },
+  "common": { "loading": "ലോഡ് ചെയ്യുന്നു…", "error": "എന്തോ തകരാർ സംഭവിച്ചു", "retry": "വീണ്ടും ശ്രമിക്കുക", "close": "അടയ്ക്കുക", "save": "സംരക്ഷിക്കുക", "cancel": "റദ്ദാക്കുക", "back": "തിരിച്ചു", "done": "പൂർത്തിയായി" }
+}

@@ -1,30 +1,37 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Search, X, CheckCircle, Info, CreditCard,
   Shield, ChevronRight, Star, Filter
 } from 'lucide-react';
 import { LIC_PLANS, PLAN_CATEGORIES, CATEGORY_COLORS, type LICPlan } from '@/lib/lic-plans';
-import { useTheme } from '@/context/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import DashboardShell from '@/components/DashboardShell';
+import PageHeader from '@/components/PageHeader';
 
-export default function PlansPage() {
+function PlansPageInner() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const searchParams = useSearchParams();
+  const T = useThemeColors();
+  const { bg, surface, surface2, border, text, text2, hint, headerBg, modalBg, isDark } = T;
+
+  // Initialise from URL ?category=... so sidebar/dashboard links deep-link correctly
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const param = searchParams.get('category');
+    const validIds = ['all','term','endowment','moneyback','whole-life','pension','ulip','children','health'];
+    return param && validIds.includes(param) ? param : 'all';
+  });
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
   const [selectedPlan, setSelectedPlan] = useState<LICPlan | null>(null);
 
-  const bg       = isDark ? '#0F1117'  : '#FAFAFA';
-  const surface  = isDark ? '#161B27'  : '#FFFFFF';
-  const surface2 = isDark ? '#1E2436'  : '#F8F9FA';
-  const border   = isDark ? 'rgba(255,255,255,0.07)' : '#DADCE0';
-  const text     = isDark ? '#E2E8F0'  : '#202124';
-  const text2    = isDark ? '#94A3B8'  : '#5F6368';
-  const hint     = isDark ? '#64748B'  : '#9AA0A6';
-  const headerBg = isDark ? 'rgba(22,27,39,0.95)' : 'rgba(255,255,255,0.95)';
+  // Sync if URL param changes (e.g. back/forward)
+  useEffect(() => {
+    const param = searchParams.get('category');
+    const validIds = ['all','term','endowment','moneyback','whole-life','pension','ulip','children','health'];
+    if (param && validIds.includes(param)) setActiveCategory(param);
+  }, [searchParams]);
 
   const filtered = LIC_PLANS.filter(p => {
     const matchCat = activeCategory === 'all' || p.category === activeCategory;
@@ -40,7 +47,7 @@ export default function PlansPage() {
 
   return (
     <DashboardShell>
-    <div style={{ minHeight:'100vh', background:bg, color:text, fontFamily:'Inter, sans-serif', transition:'background 0.3s, color 0.3s' }}>
+    <div suppressHydrationWarning style={{ minHeight:'100vh', background:bg, color:text, fontFamily:'Inter, sans-serif', transition:'background 0.3s, color 0.3s' }}>
       <style>{`
         .plan-card{transition:all 0.2s ease;cursor:pointer;}
         .plan-card:hover{transform:translateY(-2px);border-color:#C8102E!important;box-shadow:0 4px 16px rgba(60,64,67,0.15);}
@@ -52,18 +59,23 @@ export default function PlansPage() {
         }
       `}</style>
 
-      {/* Header */}
-      <header style={{ height:64,display:'flex',alignItems:'center',gap:14,padding:'0 20px',borderBottom:`1px solid ${border}`,background:headerBg,backdropFilter:'blur(12px)',position:'sticky',top:0,zIndex:30,transition:'background 0.3s,border-color 0.3s' }}>
-        <button onClick={() => router.back()} style={{ width:36,height:36,borderRadius:'50%',border:`1px solid ${border}`,background:surface2,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:text,flexShrink:0 }}>
-          <ArrowLeft size={16} />
-        </button>
-        <div>
-          <h1 style={{ fontSize:17,fontWeight:800,lineHeight:1,color:text }}>Explore LIC Plans</h1>
-          <p style={{ fontSize:11,color:hint,marginTop:2 }}>{LIC_PLANS.length} official plans · Updated 2025–26</p>
+      <PageHeader>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => router.back()} style={{ width:34,height:34,borderRadius:'50%',border:`1px solid ${border}`,background:surface2,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:text,flexShrink:0 }}>
+            <ArrowLeft size={15} />
+          </button>
+          <div>
+            <h1 style={{ fontSize:17,fontWeight:800,lineHeight:1,color:text }}>Explore LIC Plans</h1>
+            <p style={{ fontSize:11,color:hint,marginTop:2 }}>{LIC_PLANS.length} official plans · Updated 2025–26</p>
+          </div>
         </div>
-      </header>
+        <div style={{ display:'flex',alignItems:'center',gap:6,background:surface2,border:`1px solid ${border}`,borderRadius:20,padding:'6px 12px' }}>
+          <Filter size={13} color={hint} />
+          <span style={{ fontSize:12,color:hint,fontWeight:500 }}>{filtered.length} plans</span>
+        </div>
+      </PageHeader>
 
-      <div style={{ maxWidth:960,margin:'0 auto',padding:'20px 16px 60px' }}>
+      <div style={{ maxWidth:960,margin:'0 auto',padding:'24px 16px 60px' }}>
         {/* Search */}
         <div style={{ position:'relative',marginBottom:16 }}>
           <Search size={15} style={{ position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:hint }} />
@@ -275,12 +287,10 @@ export default function PlansPage() {
   );
 }
 
-
-
-
-
-
-
-
-
-
+export default function PlansPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ fontSize: 14, color: '#94A3B8' }}>Loading plans...</div></div>}>
+      <PlansPageInner />
+    </Suspense>
+  );
+}

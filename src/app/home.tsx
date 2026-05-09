@@ -10,12 +10,24 @@ export default function HomePage() {
       <style>{`
         .home-trust-num { font-size: 22px; font-weight: 700; color: #FFB300; }
         .home-trust-lbl { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
-        .home-feature { display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-          background: rgba(255,255,255,0.08); border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
-          margin-bottom: 10px; transition: background 0.2s; }
-        .home-feature:hover { background: rgba(255,255,255,0.13); }
-        .home-feature-icon { font-size: 22px; flex-shrink: 0; }
-        .home-feature-text { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 500; }
+        .home-feature {
+          display: flex; align-items: center; gap: 12px; padding: 13px 16px;
+          background: var(--bg-surface);
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          margin-bottom: 10px;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .home-feature:hover {
+          background: var(--bg-hover);
+          border-color: var(--lic-red);
+        }
+        .home-feature-icon { font-size: 20px; flex-shrink: 0; }
+        .home-feature-text {
+          font-size: 13px;
+          color: var(--text-primary);
+          font-weight: 500;
+        }
         @media(max-width: 768px) {
           .home-heading { font-size: 40px !important; }
           .home-trust { flex-wrap: wrap; gap: 20px !important; }

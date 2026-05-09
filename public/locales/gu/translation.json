@@ -1,0 +1,8 @@
+{
+  "nav": { "dashboard": "ડૅશબોર્ડ", "policies": "મારી પૉલિસી", "plans": "પ્લાન જુઓ", "news": "LIC સમાચાર", "profile": "પ્રોફાઇલ", "settings": "સેટિંગ્સ", "support": "સહાય", "logout": "સાઇન આઉટ" },
+  "dashboard": { "welcome": "પાછા સ્વાગત છે", "totalCoverage": "કુલ કવરેજ", "premiumDue": "પ્રીમિયમ બાકી", "activePolicies": "સક્રિય પૉલિસી", "nextDue": "આગળની તારીખ", "payNow": "હવે ચૂકવો", "viewAll": "બધું જુઓ" },
+  "policies": { "title": "મારી પૉલિસી", "active": "સક્રિય", "sumAssured": "વીમા રકમ", "premium": "પ્રીમિયમ", "nextDue": "આગળની તારીખ", "maturityDate": "પરિપક્વ તારીખ", "nominee": "નૉમિની", "payPremium": "પ્રીમિયમ ભરો", "raiseClaim": "દાવો કરો", "overview": "અવલોકન", "history": "ઇતિહાસ", "documents": "દસ્તાવેજો" },
+  "vaani": { "title": "LIC ની વાણી", "subtitle": "AI સહાયક", "placeholder": "LIC વિશે કંઈ પણ પૂછો...", "listening": "સાંભળી રહ્યા છીએ… બોલો", "poweredBy": "Gemini AI દ્વારા" },
+  "auth": { "login": "સાઇન ઇન", "logout": "સાઇન આઉટ", "phone": "ફોન નંબર", "otp": "OTP દાખલ કરો", "sendOtp": "OTP મોકલો", "verify": "ચકાસો" },
+  "common": { "loading": "લોડ થઈ રહ્યું છે…", "error": "કંઈક ખોટું થયું", "retry": "ફરી પ્રયાસ કરો", "close": "બંધ કરો", "save": "સાચવો", "cancel": "રદ કરો", "back": "પાછળ", "done": "થઈ ગયું" }
+}

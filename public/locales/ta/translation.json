@@ -1,0 +1,8 @@
+{
+  "nav": { "dashboard": "டாஷ்போர்டு", "policies": "என் பாலிசிகள்", "plans": "திட்டங்கள் காண்க", "news": "LIC செய்திகள்", "profile": "சுயவிவரம்", "settings": "அமைப்புகள்", "support": "உதவி", "logout": "வெளியேறு" },
+  "dashboard": { "welcome": "மீண்டும் வரவேற்கிறோம்", "totalCoverage": "மொத்த கவரேஜ்", "premiumDue": "பிரீமியம் செலுத்த வேண்டியது", "activePolicies": "செயலில் உள்ள பாலிசிகள்", "nextDue": "அடுத்த தேதி", "payNow": "இப்போது செலுத்துங்கள்", "viewAll": "அனைத்தும் காண்க" },
+  "policies": { "title": "என் பாலிசிகள்", "active": "செயலில்", "sumAssured": "காப்பீட்டு தொகை", "premium": "பிரீமியம்", "nextDue": "அடுத்த தேதி", "maturityDate": "முதிர்வு தேதி", "nominee": "நாமினி", "payPremium": "பிரீமியம் செலுத்து", "raiseClaim": "கோரிக்கை செய்", "overview": "மேலோட்டம்", "history": "வரலாறு", "documents": "ஆவணங்கள்" },
+  "vaani": { "title": "LIC வாணி", "subtitle": "AI உதவியாளர்", "placeholder": "LIC பற்றி எதுவும் கேளுங்கள்...", "listening": "கேட்கிறோம்… பேசுங்கள்", "poweredBy": "Gemini AI மூலம்" },
+  "auth": { "login": "உள்நுழைய", "logout": "வெளியேறு", "phone": "தொலைபேசி எண்", "otp": "OTP உள்ளிடுக", "sendOtp": "OTP அனுப்பு", "verify": "சரிபார்க்க" },
+  "common": { "loading": "ஏற்றுகிறது…", "error": "ஏதோ தவறு நடந்தது", "retry": "மீண்டும் முயற்சிக்கவும்", "close": "மூடு", "save": "சேமி", "cancel": "ரத்து செய்", "back": "பின்னால்", "done": "முடிந்தது" }
+}

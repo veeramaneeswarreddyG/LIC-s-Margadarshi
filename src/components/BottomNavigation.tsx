@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
 import { Home, FileText, Calculator, User, MessageCircle } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface NavItem {
   id: string;
@@ -14,43 +14,17 @@ interface NavItem {
 }
 
 export default function BottomNavigation() {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
-  const { t } = useTranslation('common');
+  const { isDark } = useTheme();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const navItems: NavItem[] = [
-    {
-      id: 'home',
-      icon: <Home size={24} />,
-      label: 'Home',
-      route: '/dashboard',
-    },
-    {
-      id: 'policies',
-      icon: <FileText size={24} />,
-      label: 'Policies',
-      route: '/policies',
-      badge: 0,
-    },
-    {
-      id: 'calculator',
-      icon: <Calculator size={24} />,
-      label: 'Calculator',
-      route: '/calculator',
-    },
-    {
-      id: 'vaani',
-      icon: <MessageCircle size={24} />,
-      label: "Vaani",
-      route: '#vaani',
-    },
-    {
-      id: 'profile',
-      icon: <User size={24} />,
-      label: 'Profile',
-      route: '/profile',
-    },
+    { id: 'home',       icon: <Home         size={22} />, label: 'Home',       route: '/dashboard' },
+    { id: 'policies',   icon: <FileText     size={22} />, label: 'Policies',   route: '/policies',  badge: 0 },
+    { id: 'calculator', icon: <Calculator   size={22} />, label: 'Calculator', route: '/calculator' },
+    { id: 'vaani',      icon: <MessageCircle size={22} />, label: 'Vaani',     route: '#vaani' },
+    { id: 'profile',    icon: <User         size={22} />, label: 'Profile',    route: '/profile' },
   ];
 
   const isActive = (route: string) => {
@@ -58,13 +32,41 @@ export default function BottomNavigation() {
     return pathname === route;
   };
 
+  /* ─── Theme-aware palette ─── */
+  const bg       = isDark ? 'rgba(18,22,36,0.96)' : 'rgba(255,255,255,0.97)';
+  const border   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)';
+  const shadow   = isDark ? '0 -4px 24px rgba(0,0,0,0.5)' : '0 -4px 24px rgba(0,0,0,0.10)';
+  const inactiveIcon = isDark ? '#6B7280' : '#9AA0A6';
+  const inactiveLabel = isDark ? '#4B5563' : '#9AA0A6';
+  const tooltipBg    = isDark ? 'rgba(30,41,59,0.97)' : 'rgba(30,41,59,0.92)';
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-900/95 via-slate-900/90 to-slate-900/80 backdrop-blur-xl border-t border-white/10 z-40">
-      {/* Container */}
-      <div className="h-full max-w-md mx-auto px-4 flex items-center justify-between">
+    <nav style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, height: 72,
+      background: bg,
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: `1px solid ${border}`,
+      boxShadow: shadow,
+      zIndex: 40,
+      transition: 'background 0.3s, border-color 0.3s',
+    }}>
+
+      {/* Top accent line */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(200,16,46,0.4), transparent)',
+      }} />
+
+      {/* Nav items */}
+      <div style={{
+        height: '100%', maxWidth: 480, margin: '0 auto',
+        padding: '0 8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+      }}>
         {navItems.map((item) => {
-          const active = isActive(item.route);
-          const isHovered = hoveredItem === item.id;
+          const active   = isActive(item.route);
+          const hovered  = hoveredItem === item.id;
 
           return (
             <button
@@ -73,66 +75,91 @@ export default function BottomNavigation() {
                 if (item.route !== '#vaani') {
                   router.push(item.route);
                 } else {
-                  // Trigger Vaani modal
                   window.dispatchEvent(new CustomEvent('openVaani'));
                 }
                 setHoveredItem(null);
               }}
               onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
-              className="relative flex flex-col items-center justify-center w-16 h-16 rounded-full transition-all duration-300 group"
               style={{
-                background: active
-                  ? 'linear-gradient(135deg, #C8102E 0%, #8B0D20 100%)'
-                  : isHovered
-                    ? 'rgba(200, 16, 46, 0.2)'
-                    : 'transparent',
-                boxShadow: active
-                  ? '0 8px 24px rgba(200, 16, 46, 0.4)'
-                  : 'none',
-                transform: active || isHovered ? 'scale(1.1)' : 'scale(1)',
+                position: 'relative',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                width: item.id === 'calculator' ? 54 : 60,
+                height: item.id === 'calculator' ? 54 : 60,
+                borderRadius: item.id === 'calculator' ? '50%' : 14,
+                border: 'none',
+                cursor: 'pointer',
+                background: item.id === 'calculator'
+                  ? 'linear-gradient(135deg, #8B5CF6, #6D28D9)'
+                  : active
+                    ? 'linear-gradient(135deg, #C8102E 0%, #8B0D20 100%)'
+                    : hovered
+                      ? isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
+                      : 'transparent',
+                boxShadow: item.id === 'calculator'
+                  ? '0 4px 18px rgba(139,92,246,0.45)'
+                  : active ? '0 6px 20px rgba(200,16,46,0.35)' : 'none',
+                transform: item.id === 'calculator'
+                  ? 'translateY(-10px)'
+                  : active ? 'translateY(-2px)' : 'translateY(0)',
+                transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                gap: 4,
               }}
             >
               {/* Icon */}
-              <span
-                className="transition-all duration-300"
-                style={{
-                  color: active ? '#FFFFFF' : '#A0AEC0',
-                  opacity: active ? 1 : 0.7,
-                  transform: active || isHovered ? 'scale(1.15)' : 'scale(1)',
-                }}
-              >
+              <span style={{
+                color: (active || item.id === 'calculator') ? '#FFFFFF' : inactiveIcon,
+                display: 'flex', transition: 'color 0.2s',
+                transform: active ? 'scale(1.05)' : 'scale(1)',
+              }}>
                 {item.icon}
+              </span>
+
+              {/* Label — always visible below icon */}
+              <span style={{
+                fontSize: 10,
+                fontWeight: (active || item.id === 'calculator') ? 700 : 500,
+                color: (active || item.id === 'calculator') ? '#FFFFFF' : inactiveLabel,
+                letterSpacing: '0.2px',
+                lineHeight: 1,
+                transition: 'color 0.2s',
+              }}>
+                {item.label}
               </span>
 
               {/* Badge */}
               {item.badge !== undefined && item.badge > 0 && (
-                <span className="absolute top-2 right-2 w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                <span style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 18, height: 18,
+                  background: '#f97316', color: 'white',
+                  fontSize: 10, fontWeight: 700,
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `2px solid ${bg}`,
+                }}>
                   {item.badge}
                 </span>
               )}
 
-              {/* Label Tooltip */}
-              {(isHovered || active) && (
-                <div
-                  className="absolute -top-10 px-3 py-1 bg-slate-800 text-white text-xs font-medium rounded-lg whitespace-nowrap border border-white/20 pointer-events-none animate-fadeIn"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.95) 100%)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                  }}
-                >
+              {/* Hover tooltip (only for non-active, on desktop hover) */}
+              {hovered && !active && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginBottom: 8,
+                  background: tooltipBg,
+                  color: 'white',
+                  fontSize: 11, fontWeight: 600,
+                  padding: '5px 10px',
+                  borderRadius: 8,
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                  pointerEvents: 'none',
+                  animation: 'bnFadeIn 0.15s ease',
+                }}>
                   {item.label}
-
-                  {/* Arrow */}
-                  <div
-                    className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0"
-                    style={{
-                      borderLeft: '5px solid transparent',
-                      borderRight: '5px solid transparent',
-                      borderTop: '5px solid rgba(30,41,59,0.95)',
-                    }}
-                  />
                 </div>
               )}
             </button>
@@ -140,24 +167,10 @@ export default function BottomNavigation() {
         })}
       </div>
 
-      {/* Gradient line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-      {/* CSS */}
       <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
+        @keyframes bnFadeIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
       `}</style>
     </nav>
